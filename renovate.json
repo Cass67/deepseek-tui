@@ -1,0 +1,29 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "labels": ["dependencies", "security"],
+  "dependencyDashboard": true,
+  "rangeStrategy": "replace",
+  "separateMajorMinor": true,
+  "prConcurrentLimit": 10,
+  "packageRules": [
+    {
+      "matchManagers": ["dockerfile"],
+      "groupName": "container base images",
+      "labels": ["docker", "base-image"]
+    },
+    {
+      "matchManagers": ["pip_requirements", "pep621", "poetry"],
+      "groupName": "python dependencies",
+      "labels": ["python"]
+    },
+    {
+      "matchDatasources": ["docker"],
+      "pinDigests": true
+    },
+    {
+      "matchUpdateTypes": ["major"],
+      "addLabels": ["major-update"]
+    }
+  ]
+}

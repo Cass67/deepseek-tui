@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+app_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+export DSH_CWD="${DSH_CWD:-$PWD}"
+config_home="${XDG_CONFIG_HOME:-${HOME:-$app_root/.config}}"
+export DSH_PI_AI_AUTH_PATH="${DSH_PI_AI_AUTH_PATH:-$config_home/deepseek-tui/auth.json}"
+exec bun "$app_root/src/index.tsx" "$@"

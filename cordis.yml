@@ -1,0 +1,173 @@
+# Runtime composition for deepseek-tui's subprocess agent.
+# stdout is reserved for JSON-RPC — do not add console loggers.
+
+- id: sdk-jsonrpc-server
+  name: "@deepseek-ai/dsh-sdk-jsonrpc-server"
+
+- id: attachments
+  name: "@deepseek-ai/dsh-attachment-local"
+
+# OpenCode-style user provider configuration. The llm-pi-ai namespace in this
+# file may add gateways or override any catalog route live without a restart.
+- id: settings
+  name: "@deepseek-ai/dsh-settings-file"
+  config:
+    path: !!js ((process.env.DEEPSEEK_TUI_CONFIG ?? ((process.env.XDG_CONFIG_HOME ?? ((process.env.HOME ?? '.') + '/.config')) + '/deepseek-tui/providers.yaml')))
+
+- id: llm-pi-ai
+  name: "@deepseek-ai/dsh-llm-pi-ai"
+  config:
+    providers:
+      # Installed pi-ai catalog routes. Empty profiles inherit native endpoint,
+      # protocol, models, and environment-based credential discovery.
+      amazon-bedrock: {}
+      ant-ling: {}
+      anthropic: {}
+      azure-openai-responses: {}
+      cerebras: {}
+      cloudflare-ai-gateway: {}
+      cloudflare-workers-ai: {}
+      deepseek: {}
+      fireworks: {}
+      github-copilot: {}
+      google: {}
+      google-vertex: {}
+      groq: {}
+      huggingface: {}
+      kimi-coding: {}
+      minimax: {}
+      minimax-cn: {}
+      mistral: {}
+      moonshotai: {}
+      moonshotai-cn: {}
+      nvidia: {}
+      openai: {}
+      openai-codex: {}
+      opencode: {}
+      opencode-go: {}
+      openrouter: {}
+      qwen-token-plan-cn: {}
+      together: {}
+      vercel-ai-gateway: {}
+      xai: {}
+      xiaomi: {}
+      xiaomi-token-plan-ams: {}
+      xiaomi-token-plan-cn: {}
+      xiaomi-token-plan-sgp: {}
+      zai: {}
+      zai-coding-cn: {}
+
+      qwen-token-plan:
+        baseURL: https://token-plan.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1
+        modelOverrides:
+          qwen3.8-max-preview:
+            contextWindow: 196608
+        reasoning: medium
+
+      # OpenAI-compatible router on the LAN box (localhost = localhost), mirroring
+      # ~/.pi/agent/models.json. No auth; tool calls and reasoning efforts pass
+      # through to the served model.
+      local-llm-router:
+        displayName: Local LLM Router
+        api: openai-completions
+        baseURL: http://localhost:3200/v1
+        # pi-ai refuses an openai-completions request with neither api key nor
+        # Authorization header; the router checks neither, so carry a bearer it
+        # ignores. LOCAL_LLM_API_KEY overrides the placeholder if the box ever
+        # grows real auth.
+        headers:
+          Authorization: !!js ('Bearer ' + (process.env.LOCAL_LLM_API_KEY ?? 'dummy-local-llm'))
+        # The template only reasons when reasoning_effort is present, so the
+        # route sends its default level on every request.
+        reasoning: xhigh
+        models:
+          - id: router
+            name: Qwen3.6_fable_711_27b
+            contextWindow: 196608
+            maxTokens: 49152
+            input: [text]
+            # The served template accepts exactly these reasoning_effort values
+            # (xhigh is its default); anything else raises a Jinja error, so no
+            # other level is offered and there is no off switch.
+            reasoningEfforts:
+              low: low
+              medium: medium
+              high: xhigh
+              xhigh: xhigh
+
+- id: commands
+  name: "@deepseek-ai/dsh-commands"
+
+- id: user-approval
+  name: "@deepseek-ai/dsh-user-approval"
+  config:
+    policy: ask
+
+- id: user-questions
+  name: "@deepseek-ai/dsh-user-questions"
+
+- id: subprocess
+  name: "@deepseek-ai/dsh-subprocess-local"
+
+- id: bash
+  name: "@deepseek-ai/dsh-bash-local"
+  config:
+    cwd: !!js process.env.DSH_CWD ?? process.cwd()
+    timeoutMs: 120000
+
+- id: agent-spine
+  name: "@deepseek-ai/dsh-agent-spine-demo"
+  config:
+    persona: !!js process.env.DSH_SYSTEM_PROMPT ?? 'You are a helpful coding assistant. Be concise and direct.'
+    workspaceContext:
+      maxBytes: 131072
+    skills:
+      enabled: false
+    toolBash:
+      enableRunInBackground: false
+    toolJobs: false
+
+- id: sessions
+  name: "@deepseek-ai/dsh-session-persistence-jsonl"
+  config:
+    root: !!js process.env.DSH_SESSION_ROOT ?? './.sessions'
+    compression: none
+
+- id: session-checkpoints
+  name: "@deepseek-ai/dsh-session-checkpoint-policy"
+
+- id: session-query
+  name: "@deepseek-ai/dsh-session-query-sqlite"
+  config:
+    path: ":memory:"
+    openAt: never
+
+- id: tool-ask-user
+  name: "@deepseek-ai/dsh-tool-ask-user"
+
+- id: fs-local
+  name: "@deepseek-ai/dsh-fs-local"
+  config:
+    cwd: !!js process.env.DSH_CWD ?? process.cwd()
+
+- id: fs-observation-policy
+  name: "@deepseek-ai/dsh-fs-observation-policy"
+
+- id: tool-fs
+  name: "@deepseek-ai/dsh-tool-fs"
+
+- id: token-meter
+  name: "@deepseek-ai/dsh-token-meter"
+
+- id: compaction-basic
+  name: "@deepseek-ai/dsh-compaction-basic"
+  config:
+    thresholdRatio: 0.4
+    retainRatio: 0.16
+    summarizationProvider: qwen-token-plan
+    summarizationModel: qwen3.6-flash
+    maxTokens: 8192
+    compactionRetries: 1
+
+- id: command-compact
+  name: "@deepseek-ai/dsh-command-compact"

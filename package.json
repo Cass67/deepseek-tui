@@ -1,0 +1,61 @@
+{
+  "name": "deepseek-tui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Interactive terminal chat UI for DeepSeek Harness",
+  "bin": {
+    "deepseek-tui": "bin/deepseek-tui"
+  },
+  "scripts": {
+    "dev": "bun src/index.tsx",
+    "start": "bun src/index.tsx",
+    "build": "bun build src/index.tsx --outdir dist --target node",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@deepseek-ai/cordis": "link:../deepseek-harness/vendor/cordis",
+    "@deepseek-ai/dsh-agent-spine-demo": "link:../deepseek-harness/packages/examples/agent-spine-demo",
+    "@deepseek-ai/dsh-attachment": "link:../deepseek-harness/packages/attachment/attachment",
+    "@deepseek-ai/dsh-attachment-local": "link:../deepseek-harness/packages/attachment/attachment-local",
+    "@deepseek-ai/dsh-bash-local": "link:../deepseek-harness/packages/shell/bash-local",
+    "@deepseek-ai/dsh-command-compact": "link:../deepseek-harness/packages/compaction/command-compact",
+    "@deepseek-ai/dsh-commands": "link:../deepseek-harness/packages/interaction/commands",
+    "@deepseek-ai/dsh-compaction-basic": "link:../deepseek-harness/packages/compaction/compaction-basic",
+    "@deepseek-ai/dsh-fs-local": "link:../deepseek-harness/packages/fs/fs-local",
+    "@deepseek-ai/dsh-fs-observation-policy": "link:../deepseek-harness/packages/fs/fs-observation-policy",
+    "@deepseek-ai/dsh-invariants": "link:../deepseek-harness/packages/runtime-diagnostics/invariants",
+    "@deepseek-ai/dsh-llm": "link:../deepseek-harness/packages/llm/llm",
+    "@deepseek-ai/dsh-llm-pi-ai": "link:../deepseek-harness/packages/llm/llm-pi-ai",
+    "@deepseek-ai/dsh-sdk-client": "link:../deepseek-harness/packages/sdk/client",
+    "@deepseek-ai/dsh-sdk-jsonrpc-demo": "link:../deepseek-harness/packages/examples/jsonrpc-demo",
+    "@deepseek-ai/dsh-sdk-jsonrpc-server": "link:../deepseek-harness/packages/sdk/server",
+    "@deepseek-ai/dsh-sdk-protocol": "link:../deepseek-harness/packages/sdk/protocol",
+    "@deepseek-ai/dsh-session": "link:../deepseek-harness/packages/core/session",
+    "@deepseek-ai/dsh-session-checkpoint-policy": "link:../deepseek-harness/packages/session/session-checkpoint-policy",
+    "@deepseek-ai/dsh-session-persistence-jsonl": "link:../deepseek-harness/packages/session/session-persistence-jsonl",
+    "@deepseek-ai/dsh-session-query-sqlite": "link:../deepseek-harness/packages/session-query/session-query-sqlite",
+    "@deepseek-ai/dsh-settings-file": "link:../deepseek-harness/packages/settings/settings-file",
+    "@deepseek-ai/dsh-subagent": "link:../deepseek-harness/packages/subagent/subagent",
+    "@deepseek-ai/dsh-subprocess-local": "link:../deepseek-harness/packages/subprocess/subprocess-local",
+    "@deepseek-ai/dsh-token-meter": "link:../deepseek-harness/packages/llm/token-meter",
+    "@deepseek-ai/dsh-tool-ask-user": "link:../deepseek-harness/packages/interaction/tool-ask-user",
+    "@deepseek-ai/dsh-tool-fs": "link:../deepseek-harness/packages/fs/tool-fs",
+    "@deepseek-ai/dsh-user-approval": "link:../deepseek-harness/packages/interaction/user-approval",
+    "@deepseek-ai/dsh-user-questions": "link:../deepseek-harness/packages/interaction/user-questions",
+    "@opentui/core": "latest",
+    "@opentui/react": "latest",
+    "react": "^19.2.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.2.0",
+    "eslint": "^10.8.1",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.11.0",
+    "typescript": "^5.8.0",
+    "typescript-eslint": "^8.67.0"
+  }
+}
