@@ -47,6 +47,57 @@ export const MessageBubble = memo(function MessageBubble({
     );
   }
 
+  // Todo list: a bordered panel with a header and per-item status markers.
+  if (message.role === "todo") {
+    const todos = message.todos ?? [];
+    const done = todos.filter((t) => t.status === "completed").length;
+    return (
+      <box
+        style={{
+          flexDirection: "column",
+          width: "100%",
+          border: true,
+          borderColor: theme.border,
+          backgroundColor: theme.surface,
+          paddingX: 2,
+          paddingY: 1,
+        }}
+      >
+        <text fg={theme.primary} attributes={TextAttributes.BOLD}>
+          ☑ todos {todos.length > 0 ? `${done}/${todos.length}` : ""}
+        </text>
+        {todos.length === 0 ? (
+          <text fg={theme.textMuted}>{message.content}</text>
+        ) : (
+          todos.map((todo, index) => (
+            <text
+              key={index}
+              fg={
+                todo.status === "completed"
+                  ? theme.textMuted
+                  : todo.status === "in_progress"
+                    ? theme.primary
+                    : theme.text
+              }
+              attributes={
+                todo.status === "in_progress"
+                  ? TextAttributes.BOLD
+                  : undefined
+              }
+            >
+              {todo.status === "completed"
+                ? "✓"
+                : todo.status === "in_progress"
+                  ? "→"
+                  : "○"}{" "}
+              {todo.content}
+            </text>
+          ))
+        )}
+      </box>
+    );
+  }
+
   // User messages: distinct surface without adding another heavy border
   if (message.role === "user") {
     return (

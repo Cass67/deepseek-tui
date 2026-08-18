@@ -36,7 +36,17 @@ import {
   sessionPickerDescription,
   sessionPresentation,
 } from "./sessions.ts";
-import type { AgentStatus, AppState, ChatMessage } from "./types.ts";
+import type {
+  AgentStatus,
+  AppState,
+  ChatMessage,
+  GoalInfo,
+  JobInfo,
+  SubagentInfo,
+  TodoItem,
+  WorkflowMember,
+  WorkflowRun,
+} from "./types.ts";
 
 const APP_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const HARNESS_BIN =
@@ -248,12 +258,26 @@ export function processEvent(
     streamingText: string;
     assistantId: string | null;
     usage: { input: number; output: number };
+    planModeActive: boolean;
+    subagents: SubagentInfo[];
+    jobs: JobInfo[];
+    goal: GoalInfo | null;
+    workflowRuns: WorkflowRun[];
+    toolCallNames: Map<string, string>;
   },
-): { streamingText: string; assistantId: string | null } {
+): {
+  streamingText: string;
+  assistantId: string | null;
+  planModeActive: boolean;
+} {
   const type = event.type as string;
   const data = event.data as Record<string, unknown> | undefined;
   if (!data)
-    return { streamingText: ctx.streamingText, assistantId: ctx.assistantId };
+    return {
+      streamingText: ctx.streamingText,
+      assistantId: ctx.assistantId,
+      planModeActive: ctx.planModeActive,
+    };
 
   switch (type) {
     case "user/message": {
@@ -292,7 +316,11 @@ export function processEvent(
             timestamp: Date.now(),
           });
         }
-        return { streamingText: ctx.streamingText + text, assistantId };
+        return {
+          streamingText: ctx.streamingText + text,
+          assistantId,
+          planModeActive: ctx.planModeActive,
+        };
       }
       break;
     }
@@ -324,21 +352,43 @@ export function processEvent(
           ctx.usage.output += msg.usage.outputTokens ?? 0;
         }
       }
-      return { streamingText: "", assistantId: null };
+      return {
+        streamingText: "",
+        assistantId: null,
+        planModeActive: ctx.planModeActive,
+      };
     }
 
     case "tool/call": {
+      const toolName = data.name as string;
+      const callId = data.callId as string;
       messages.push({
         id: nextId(),
         role: "tool_call",
         content: "",
-        toolName: data.name as string,
+        toolName,
         toolArgs: data.arguments as string,
-        toolCallId: data.callId as string,
+        toolCallId: callId,
         turn: data.turn as number,
         step: data.step as number,
         timestamp: Date.now(),
       });
+      if (callId) ctx.toolCallNames.set(callId, toolName);
+      // Track subagent delegations for the subagents panel.
+      if (toolName === "subagent" || toolName === "subagent_fork") {
+        let description = "";
+        try {
+          const args = JSON.parse(data.arguments as string);
+          description = String(args.description ?? "");
+        } catch {
+          description = "";
+        }
+        ctx.subagents.push({
+          id: callId,
+          description,
+          status: "running",
+        });
+      }
       break;
     }
 
@@ -346,15 +396,30 @@ export function processEvent(
       const message = data.message as Record<string, unknown> | undefined;
       const result = toolResultBlock(message?.content);
       const text = extractText(result?.content);
+      const callId = (message?.source as Record<string, unknown> | undefined)
+        ?.callId as string | undefined;
       messages.push({
         id: nextId(),
         role: "tool_result",
         content: text,
-        toolCallId: (message?.source as Record<string, unknown> | undefined)
-          ?.callId as string | undefined,
+        toolCallId: callId,
         toolError: result?.isError === true,
         timestamp: Date.now(),
       });
+      const toolName = callId ? ctx.toolCallNames.get(callId) : undefined;
+      // Mark the subagent as done when its tool result arrives.
+      if (
+        callId &&
+        (toolName === "subagent" || toolName === "subagent_fork")
+      ) {
+        const subagent = ctx.subagents.find((s) => s.id === callId);
+        if (subagent) subagent.status = "done";
+      }
+      // Refresh the jobs panel from a job_list result (mutate in place so the
+      // caller's reference stays valid).
+      if (toolName === "job_list" && text) {
+        ctx.jobs.splice(0, ctx.jobs.length, ...parseJobList(text));
+      }
       break;
     }
 
@@ -382,54 +447,206 @@ export function processEvent(
           timestamp: Date.now(),
         });
       }
-      return { streamingText: "", assistantId: null };
+      return {
+        streamingText: "",
+        assistantId: null,
+        planModeActive: ctx.planModeActive,
+      };
     }
 
     case "todo/write": {
-      const todos = data.todos as Array<Record<string, unknown>> | undefined;
-      if (todos?.length) {
-        const lines = todos.map((t) => {
-          const status = t.status as string;
-          const content = t.content as string;
-          return `${status === "completed" ? "✓" : status === "in_progress" ? "→" : "○"} ${content}`;
-        });
-        messages.push({
-          id: nextId(),
-          role: "status",
-          content: lines.join("\n"),
-          timestamp: Date.now(),
+      const rawTodos = data.todos as Array<Record<string, unknown>> | undefined;
+      if (rawTodos?.length) {
+        const todos: TodoItem[] = rawTodos.map((t) => ({
+          content: String(t.content ?? ""),
+          status: normalizeTodoStatus(t.status),
+        }));
+        // Update the existing todo message in place so the list reflects the
+        // latest snapshot without stacking a new message on every write.
+        const existing = findLastTodoMessage(messages);
+        if (existing) {
+          existing.todos = todos;
+          existing.content = renderTodos(todos);
+          existing.timestamp = Date.now();
+        } else {
+          messages.push({
+            id: nextId(),
+            role: "todo",
+            content: renderTodos(todos),
+            todos,
+            timestamp: Date.now(),
+          });
+        }
+      }
+      break;
+    }
+
+    case "plan/mode": {
+      ctx.planModeActive = data.active === true;
+      break;
+    }
+    case "goal/change": {
+      const operation = data.operation as string | undefined;
+      if (operation === "clear") {
+        ctx.goal = null;
+        break;
+      }
+      const goal = data.goal as Record<string, unknown> | undefined;
+      if (goal && typeof goal.id === "string" && typeof goal.objective === "string") {
+        ctx.goal = {
+          id: goal.id,
+          objective: goal.objective,
+          phase: (goal.phase as GoalInfo["phase"]) ?? "active",
+          maxGoalRounds:
+            typeof goal.maxGoalRounds === "number" ? goal.maxGoalRounds : 0,
+          roundsStarted:
+            typeof data.roundsStarted === "number" ? data.roundsStarted : 0,
+        };
+      }
+      break;
+    }
+    case "tool-workflow/run-start": {
+      const runId = data.runId as string | undefined;
+      const name = data.name as string | undefined;
+      if (runId && name) {
+        ctx.workflowRuns.push({ runId, name, ended: false, members: [] });
+      }
+      break;
+    }
+    case "tool-workflow/agent-start": {
+      const runId = data.runId as string | undefined;
+      const run = ctx.workflowRuns.find((r) => r.runId === runId);
+      if (run) {
+        run.members.push({
+          seq: typeof data.seq === "number" ? data.seq : 0,
+          label: typeof data.label === "string" ? data.label : "",
+          phase: typeof data.phase === "string" ? data.phase : undefined,
         });
       }
       break;
     }
+    case "tool-workflow/agent-end": {
+      const runId = data.runId as string | undefined;
+      const run = ctx.workflowRuns.find((r) => r.runId === runId);
+      if (run) {
+        const member = run.members.find(
+          (m) => m.seq === data.seq && m.outcome === undefined,
+        );
+        if (member) {
+          member.outcome = (data.outcome as WorkflowMember["outcome"]) ?? "completed";
+        }
+      }
+      break;
+    }
+    case "tool-workflow/run-end": {
+      const runId = data.runId as string | undefined;
+      const run = ctx.workflowRuns.find((r) => r.runId === runId);
+      if (run) run.ended = true;
+      break;
+    }
   }
 
-  return { streamingText: ctx.streamingText, assistantId: ctx.assistantId };
+  return {
+    streamingText: ctx.streamingText,
+    assistantId: ctx.assistantId,
+    planModeActive: ctx.planModeActive,
+  };
+}
+
+function normalizeTodoStatus(status: unknown): TodoItem["status"] {
+  if (status === "completed" || status === "in_progress") return status;
+  return "pending";
+}
+
+/** Parse the rendered `job_list` text (`id [kind] status — label` per line). */
+function parseJobList(text: string): JobInfo[] {
+  const jobs: JobInfo[] = [];
+  for (const line of text.split("\n")) {
+    const match = line.match(/^(\S+) \[(\S+)\] (\S+) — (.+)$/);
+    if (match) {
+      const status = match[3];
+      if (
+        status === "running" ||
+        status === "stopping" ||
+        status === "completed" ||
+        status === "killed" ||
+        status === "failed"
+      ) {
+        jobs.push({
+          id: match[1],
+          kind: match[2],
+          status,
+          label: match[4],
+        });
+      }
+    }
+  }
+  return jobs;
+}
+
+function renderTodos(todos: readonly TodoItem[]): string {
+  return todos
+    .map((t) => {
+      const marker =
+        t.status === "completed" ? "✓" : t.status === "in_progress" ? "→" : "○";
+      return `${marker} ${t.content}`;
+    })
+    .join("\n");
+}
+
+function findLastTodoMessage(messages: ChatMessage[]): ChatMessage | undefined {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    if (messages[index]?.role === "todo") return messages[index];
+  }
+  return undefined;
 }
 
 /** Rebuild visible transcript and token totals from one exact durable event log. */
 export function replayHistory(events: readonly SessionHistoryEvent[]): {
   messages: ChatMessage[];
   usage: { input: number; output: number };
+  planModeActive: boolean;
+  subagents: SubagentInfo[];
+  jobs: JobInfo[];
+  goal: GoalInfo | null;
+  workflowRuns: WorkflowRun[];
 } {
   const messages: ChatMessage[] = [];
   const usage = { input: 0, output: 0 };
-  let streamingText = "";
-  let assistantId: string | null = null;
+  const subagents: SubagentInfo[] = [];
+  const jobs: JobInfo[] = [];
+  const workflowRuns: WorkflowRun[] = [];
+  const toolCallNames = new Map<string, string>();
+  const ctx = {
+    streamingText: "",
+    assistantId: null as string | null,
+    usage,
+    planModeActive: false,
+    subagents,
+    jobs,
+    goal: null as GoalInfo | null,
+    workflowRuns,
+    toolCallNames,
+  };
   for (const event of events) {
     const result = processEvent(
       event as unknown as Record<string, unknown>,
       messages,
-      {
-        streamingText,
-        assistantId,
-        usage,
-      },
+      ctx,
     );
-    streamingText = result.streamingText;
-    assistantId = result.assistantId;
+    ctx.streamingText = result.streamingText;
+    ctx.assistantId = result.assistantId;
+    ctx.planModeActive = result.planModeActive;
   }
-  return { messages, usage };
+  return {
+    messages,
+    usage,
+    planModeActive: ctx.planModeActive,
+    subagents,
+    jobs,
+    goal: ctx.goal,
+    workflowRuns,
+  };
 }
 
 export function useHarness(options: UseHarnessOptions = {}): UseHarnessReturn {
@@ -454,6 +671,11 @@ export function useHarness(options: UseHarnessOptions = {}): UseHarnessReturn {
     pendingAttachments: [],
     queuedPromptCount: 0,
     pendingInteractions: [],
+    planModeActive: false,
+    subagents: [],
+    jobs: [],
+    goal: null,
+    workflowRuns: [],
   });
 
   const clientRef = useRef<HarnessClient | null>(null);
@@ -470,6 +692,12 @@ export function useHarness(options: UseHarnessOptions = {}): UseHarnessReturn {
   const activityRef = useRef<string | null>("starting runtime");
   const activitySinceRef = useRef<number | null>(Date.now());
   const usageRef = useRef({ input: 0, output: 0 });
+  const planModeRef = useRef(false);
+  const subagentsRef = useRef<SubagentInfo[]>([]);
+  const jobsRef = useRef<JobInfo[]>([]);
+  const goalRef = useRef<GoalInfo | null>(null);
+  const workflowRunsRef = useRef<WorkflowRun[]>([]);
+  const toolCallNamesRef = useRef(new Map<string, string>());
   const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sessionIdRef = useRef(initialSessionId);
   const routeRef = useRef<{
@@ -505,6 +733,14 @@ export function useHarness(options: UseHarnessOptions = {}): UseHarnessReturn {
       pendingAttachments: [...pendingAttachmentsRef.current],
       queuedPromptCount: queuedPromptsRef.current.length,
       pendingInteractions: [...pendingInteractionsRef.current],
+      planModeActive: planModeRef.current,
+      subagents: [...subagentsRef.current],
+      jobs: [...jobsRef.current],
+      goal: goalRef.current,
+      workflowRuns: workflowRunsRef.current.map((run) => ({
+        ...run,
+        members: [...run.members],
+      })),
     }));
   }, []);
 
@@ -592,9 +828,16 @@ export function useHarness(options: UseHarnessOptions = {}): UseHarnessReturn {
                 streamingText: streamingRef.current,
                 assistantId: assistantIdRef.current,
                 usage: usageRef.current,
+                planModeActive: planModeRef.current,
+                subagents: subagentsRef.current,
+                jobs: jobsRef.current,
+                goal: goalRef.current,
+                workflowRuns: workflowRunsRef.current,
+                toolCallNames: toolCallNamesRef.current,
               });
               streamingRef.current = result.streamingText;
               assistantIdRef.current = result.assistantId;
+              planModeRef.current = result.planModeActive;
               scheduleFlush();
             } else if (notification.method === "session.status") {
               const params = notification.params as unknown as Record<
@@ -960,6 +1203,12 @@ export function useHarness(options: UseHarnessOptions = {}): UseHarnessReturn {
       streamingRef.current = "";
       assistantIdRef.current = null;
       usageRef.current = { input: 0, output: 0 };
+      planModeRef.current = false;
+      subagentsRef.current = [];
+      jobsRef.current = [];
+      goalRef.current = null;
+      workflowRunsRef.current = [];
+      toolCallNamesRef.current = new Map();
       statusRef.current = "idle";
       setActivity(null);
       setState((prev) => ({
@@ -971,6 +1220,11 @@ export function useHarness(options: UseHarnessOptions = {}): UseHarnessReturn {
         messages: [],
         currentStreamingText: "",
         tokenUsage: { input: 0, output: 0 },
+        planModeActive: false,
+        subagents: [],
+        jobs: [],
+        goal: null,
+        workflowRuns: [],
         status: "idle",
         activity: null,
         activitySince: null,
@@ -1074,6 +1328,12 @@ export function useHarness(options: UseHarnessOptions = {}): UseHarnessReturn {
         routeRef.current = restoredRoute;
         messagesRef.current = replayed.messages;
         usageRef.current = replayed.usage;
+        planModeRef.current = replayed.planModeActive;
+        subagentsRef.current = replayed.subagents;
+        jobsRef.current = replayed.jobs;
+        goalRef.current = replayed.goal;
+        workflowRunsRef.current = replayed.workflowRuns;
+        toolCallNamesRef.current = new Map();
         streamingRef.current = "";
         assistantIdRef.current = null;
         statusRef.current = "idle";
@@ -1086,6 +1346,14 @@ export function useHarness(options: UseHarnessOptions = {}): UseHarnessReturn {
           messages: [...replayed.messages],
           currentStreamingText: "",
           tokenUsage: { ...replayed.usage },
+          planModeActive: replayed.planModeActive,
+          subagents: [...replayed.subagents],
+          jobs: [...replayed.jobs],
+          goal: replayed.goal,
+          workflowRuns: replayed.workflowRuns.map((run) => ({
+            ...run,
+            members: [...run.members],
+          })),
           status: "idle",
           activity: null,
           activitySince: null,

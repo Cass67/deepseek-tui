@@ -20,6 +20,8 @@ function roleLabel(message: ChatMessage): string {
       return `tool ${message.toolName ?? "unknown"} result`;
     case "status":
       return "status";
+    case "todo":
+      return "todos";
   }
 }
 

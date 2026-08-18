@@ -1,0 +1,16 @@
+#!/usr/bin/expect -f
+# Drive the TUI in a pseudo-terminal: boot, enter plan mode, capture render.
+set timeout 40
+log_file -noappend /tmp/tui-pty.log
+spawn bun src/index.tsx
+# Give the runtime time to boot and render the initial UI.
+sleep 5
+# Enter plan mode via the runtime /plan command.
+send "/plan on\r"
+sleep 4
+# Quit.
+send "\x03"
+sleep 1
+close
+wait
+exit 0

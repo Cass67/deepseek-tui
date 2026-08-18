@@ -121,11 +121,19 @@
     persona: !!js process.env.DSH_SYSTEM_PROMPT ?? 'You are a helpful coding assistant. Be concise and direct.'
     workspaceContext:
       maxBytes: 131072
+    dshHome: !!js dshHomePath()
     skills:
-      enabled: false
+      enabled: true
+      filesystem:
+        dshHome: !!js dshHomePath()
+        agentsHome: !!js dshHomePath('agents')
+        bundledSkillDir: !!js dshHomePath('skills/bundled')
+    goals:
+      domain: {}
+      tool: {}
     toolBash:
-      enableRunInBackground: false
-    toolJobs: false
+      enableRunInBackground: true
+    toolJobs: {}
 
 - id: sessions
   name: "@deepseek-ai/dsh-session-persistence-jsonl"
@@ -156,6 +164,43 @@
 - id: tool-fs
   name: "@deepseek-ai/dsh-tool-fs"
 
+- id: tool-fs-search
+  name: "@deepseek-ai/dsh-tool-fs-search"
+  config:
+    sampleOverCapGlobResults: false
+
+- id: tool-str-replace-editor
+  name: "@deepseek-ai/dsh-tool-str-replace-editor"
+  config:
+    maxOutputChars: 16000
+
+- id: tool-todo
+  name: "@deepseek-ai/dsh-tool-todo"
+  config:
+    allowParallelInProgress: true
+
+- id: plan-mode
+  name: "@deepseek-ai/dsh-plan-mode"
+  config:
+    section: |
+      You are in plan mode. Stay in plan mode until exit_plan_mode succeeds or the user switches the session mode. Imperative language to implement changes means plan the implementation, not execute it. A user's conversational agreement — including an answer confirming something you asked — approves nothing and does not end plan mode; fold the confirmed decision into the plan and submit it through exit_plan_mode.
+
+      Explore first. Use non-mutating reads, searches, static analysis, and checks to ground the plan in the actual repository. Do not edit or write files, change configuration, run formatters or code generation that rewrites tracked files, commit, or otherwise carry out the plan. Prefer existing functions and patterns over new machinery.
+
+      The tool catalog stays the same across modes for request-cache stability. These plan-mode rules override any later tool description or guidance that suggests using mutation tools; those tools remain listed only to keep the request shape stable. Do not use todo_write to track this planning phase: it tracks implementation after an approved plan, while the plan itself belongs in exit_plan_mode.
+
+      Resolve discoverable facts by inspection. Use ask_user_question only for user-owned choices or material ambiguity that inspection cannot answer. Do not ask the user where code lives or how current behavior works when you can find out.
+
+      Make the plan decision-complete: state the goal and success criteria; group implementation changes by subsystem; identify public API, schema, and data-flow changes; cover edge cases, failure modes, tests, acceptance criteria, and explicit assumptions. Keep it concise enough to review but detailed enough that another engineer can implement it without making design decisions.
+
+      When ready, call exit_plan_mode with the complete plan markdown, starting with a # title. Make exit_plan_mode the only and final tool call in that assistant response: it presents the plan for approval, and implementation begins only in a later step after approval. Do not paste the final plan as a plain reply or ask "should I proceed?" through prose or ask_user_question. If review rejects it, incorporate the feedback and present again. If the review channel is unavailable or aborted, stay in plan mode and ask the user to switch modes manually; do not proceed with implementation.
+
+- id: command-goal
+  name: "@deepseek-ai/dsh-command-goal"
+
+- id: tool-goal
+  name: "@deepseek-ai/dsh-tool-goal"
+
 - id: token-meter
   name: "@deepseek-ai/dsh-token-meter"
 
@@ -171,3 +216,128 @@
 
 - id: command-compact
   name: "@deepseek-ai/dsh-command-compact"
+
+- id: tool-result-pruner
+  name: "@deepseek-ai/dsh-compaction-tool-result-pruner"
+  config:
+    thresholdChars: 8192
+    headChars: 4096
+    tailChars: 1024
+
+- id: timeout-policy
+  name: "@deepseek-ai/dsh-tool-call-timeout-policy"
+
+- id: spill-local
+  name: "@deepseek-ai/dsh-spill-local"
+
+- id: spill-policy
+  name: "@deepseek-ai/dsh-spill-policy"
+  config:
+    maxInlineBytes: 50000
+
+- id: repeat-tool-reminder
+  name: "@deepseek-ai/dsh-repeat-tool-reminder"
+  config:
+    thresholds: [3, 5, 8]
+    argumentsPreviewChars: 500
+
+- id: session-projection
+  name: "@deepseek-ai/dsh-session-projection"
+
+- id: session-title-llm
+  name: "@deepseek-ai/dsh-session-title-first-prompt-llm"
+  config:
+    targetWords: 5
+    targetCjkCharacters: 10
+    maxInputBytes: 4096
+    maxOutputTokens: 64
+    timeoutMs: 60000
+
+- id: agent-default-model
+  name: "@deepseek-ai/dsh-agent-default-model"
+  config:
+    provider: qwen-token-plan
+    model: qwen3.8-max-preview
+
+- id: credentials-local
+  name: "@deepseek-ai/dsh-credentials-local"
+
+- id: llm-deepseek
+  name: "@deepseek-ai/dsh-llm-deepseek"
+
+# ── Phase 2: subagents, background jobs, web, ralph ──────────────────────────
+
+# Subagent runtime: provides the `subagents` service the delegation tools inject.
+- id: subagent
+  name: "@deepseek-ai/dsh-subagent"
+
+# Subagent providers: in-process spawn (fresh child) and fork (inherits history).
+- id: subagent-spawn-in-process
+  name: "@deepseek-ai/dsh-subagent-spawn-in-process"
+  config:
+    providerName: spawn
+
+- id: subagent-fork-in-process
+  name: "@deepseek-ai/dsh-subagent-fork-in-process"
+  config:
+    providerName: fork
+
+# Subagent control: send_message to a running child + list_agents catalog.
+- id: tool-subagent-control
+  name: "@deepseek-ai/dsh-tool-subagent-control"
+
+- id: tool-subagent-list-agents
+  name: "@deepseek-ai/dsh-tool-subagent-control/list-agents"
+
+# Delegation tools: `subagent` (continuable spawn) and `subagent_fork` (one-shot).
+- id: tool-subagent
+  name: "@deepseek-ai/dsh-tool-subagent"
+  config:
+    provider: spawn
+    toolName: subagent
+    backgroundMode: continuable
+
+- id: tool-subagent-fork
+  name: "@deepseek-ai/dsh-tool-subagent"
+  config:
+    provider: fork
+    toolName: subagent_fork
+    backgroundMode: one-shot
+
+# Optional direct-child return channel (absent from roots and one-shot agents).
+- id: tool-subagent-report
+  name: "@deepseek-ai/dsh-tool-subagent-report"
+
+# Web search: DeepSeek official search route (gated on DEEPSEEK_API_KEY).
+- id: web
+  name: "@deepseek-ai/dsh-web"
+  config:
+    searchProvider: deepseek-official
+
+- id: web-search-deepseek
+  name: "@deepseek-ai/dsh-web-search-deepseek"
+  config:
+    apiKeyEnv: DEEPSEEK_API_KEY
+
+- id: tool-web
+  name: "@deepseek-ai/dsh-tool-web"
+  config:
+    fetch: false
+    searchTimeoutMs: 60000
+
+# Workflow tool: model-facing workflow orchestration (uses workflowEngine).
+- id: tool-workflow
+  name: "@deepseek-ai/dsh-tool-workflow"
+
+# Workflow engine: provides `workflowEngine` (required by tool-ralph).
+- id: workflow-worker-thread
+  name: "@deepseek-ai/dsh-workflow-worker-thread"
+  config:
+    provider: spawn
+
+# Ralph: fixed fresh-agent iteration loop (renders as a tool).
+- id: tool-ralph
+  name: "@deepseek-ai/dsh-tool-ralph"
+  config:
+    subagentProvider: spawn
+    maxRounds: 64

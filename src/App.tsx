@@ -22,6 +22,10 @@ import { InputBar } from "./InputBar.tsx";
 import { ApprovalOverlay, QuestionOverlay } from "./InteractionOverlay.tsx";
 import { Picker } from "./Picker.tsx";
 import { openExternalUrl } from "./openExternal.ts";
+import { PlanBanner } from "./PlanBanner.tsx";
+import { ActivityPanels } from "./ActivityPanels.tsx";
+import { GoalPanel } from "./GoalPanel.tsx";
+import { WorkflowPanel } from "./WorkflowPanel.tsx";
 import { loadThemePreference, saveThemePreference } from "./preferences.ts";
 import { SearchInput } from "./SearchInput.tsx";
 import { formatShellResult, ShellRunner } from "./shell.ts";
@@ -885,10 +889,26 @@ function AppBody({ themeName, onThemeChange }: AppBodyProps) {
         />
       )}
       {!activeInteraction && overlay.kind === "none" && (
-        <ChatView
-          messages={state.messages}
-          streamingText={state.currentStreamingText}
-        />
+        <box
+          style={{
+            flexDirection: "column",
+            flexGrow: 1,
+            width: "100%",
+            minHeight: 0,
+          }}
+        >
+          {state.planModeActive && <PlanBanner />}
+          {state.goal && <GoalPanel goal={state.goal} />}
+          <ActivityPanels
+            subagents={state.subagents}
+            jobs={state.jobs}
+          />
+          <WorkflowPanel runs={state.workflowRuns} />
+          <ChatView
+            messages={state.messages}
+            streamingText={state.currentStreamingText}
+          />
+        </box>
       )}
       {!activeInteraction && overlay.kind === "panel" && (
         <ControlOverlay
