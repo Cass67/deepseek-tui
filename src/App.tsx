@@ -94,7 +94,8 @@ type Overlay =
       defaultEffort?: string;
     }
   | { kind: "sessions"; sessions: readonly SessionChoice[] }
-  | { kind: "themes" };
+  | { kind: "themes" }
+  | { kind: "settings" };
 
 export function App() {
   const [themeName, setThemeName] = useState<ThemeName>(loadThemePreference);
@@ -849,6 +850,10 @@ function AppBody({ themeName, onThemeChange }: AppBodyProps) {
       void openProviderPicker();
       return;
     }
+    if (key.ctrl && key.name === "s") {
+      setOverlay({ kind: "settings" });
+      return;
+    }
     if (key.ctrl && !key.shift && !key.meta && !key.super && key.name === "c") {
       if (shellRunning) void cancelShell();
       else if (state.status === "running")
@@ -899,10 +904,7 @@ function AppBody({ themeName, onThemeChange }: AppBodyProps) {
         >
           {state.planModeActive && <PlanBanner />}
           {state.goal && <GoalPanel goal={state.goal} />}
-          <ActivityPanels
-            subagents={state.subagents}
-            jobs={state.jobs}
-          />
+          <ActivityPanels subagents={state.subagents} jobs={state.jobs} />
           <WorkflowPanel runs={state.workflowRuns} />
           <ChatView
             messages={state.messages}
@@ -1091,6 +1093,26 @@ function AppBody({ themeName, onThemeChange }: AppBodyProps) {
           }))}
           selectedValue={themeName}
           onSelect={selectTheme}
+        />
+      )}
+
+      {!activeInteraction && overlay.kind === "settings" && (
+        <ControlOverlay
+          title="Settings"
+          lines={[
+            `Model:      ${state.provider}/${state.model}`,
+            `Reasoning:  ${state.reasoningEffort ?? "default"}`,
+            `Theme:      ${themeName}`,
+            `Session:    ${state.sessionId.slice(0, 12)}…`,
+            "",
+            "Shortcuts:",
+            "  Ctrl+L  switch model",
+            "  Ctrl+T  reasoning effort",
+            "  Ctrl+P  switch provider",
+            "  Ctrl+R  resume session",
+            "  Ctrl+S  this panel",
+            "  Esc     close",
+          ]}
         />
       )}
 

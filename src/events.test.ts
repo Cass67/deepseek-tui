@@ -200,7 +200,10 @@ test("tracks subagent delegations and job_list results for the panels", () => {
     data: {
       callId: "sub-1",
       name: "subagent",
-      arguments: JSON.stringify({ description: "research topic", prompt: "go" }),
+      arguments: JSON.stringify({
+        description: "research topic",
+        prompt: "go",
+      }),
       turn: 1,
       step: 1,
     },
@@ -354,7 +357,10 @@ test("tracks workflow runs and member outcomes", () => {
   const messages: ChatMessage[] = [];
 
   processEvent(
-    { type: "tool-workflow/run-start", data: { runId: "run-1", name: "build pipeline" } },
+    {
+      type: "tool-workflow/run-start",
+      data: { runId: "run-1", name: "build pipeline" },
+    },
     messages,
     ctx,
   );

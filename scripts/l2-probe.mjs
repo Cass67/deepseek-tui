@@ -8,7 +8,10 @@ import { resolve } from "node:path";
 const APP_ROOT = resolve(import.meta.dirname, "..");
 const HARNESS_BIN =
   process.env.DSH_HARNESS_BIN ??
-  resolve(APP_ROOT, "node_modules/@deepseek-ai/dsh-sdk-jsonrpc-demo/lib/bin.js");
+  resolve(
+    APP_ROOT,
+    "node_modules/@deepseek-ai/dsh-sdk-jsonrpc-demo/lib/bin.js",
+  );
 const CORDIS_CONFIG =
   process.env.DSH_CORDIS_CONFIG ?? resolve(APP_ROOT, "cordis.yml");
 

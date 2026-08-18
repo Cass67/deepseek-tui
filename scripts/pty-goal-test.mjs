@@ -40,7 +40,8 @@ const clean = out
   .replace(/\x1b\][^\x07]*\x07/g, "")
   .replace(/\x1b[()][0-9A-B]/g, "");
 
-const hasGoalPanel = /goal\s+(●|⏸|⛔|✓)/.test(clean) || /Ship the feature/.test(clean);
+const hasGoalPanel =
+  /goal\s+(●|⏸|⛔|✓)/.test(clean) || /Ship the feature/.test(clean);
 const hasObjective = /Ship the feature/.test(clean);
 
 console.log("=== GOAL TEST RESULTS ===");

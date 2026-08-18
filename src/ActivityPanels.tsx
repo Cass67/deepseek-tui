@@ -63,9 +63,7 @@ export const ActivityPanels = memo(function ActivityPanels({
                 subagent.status === "running" ? theme.primary : theme.textMuted
               }
               attributes={
-                subagent.status === "running"
-                  ? TextAttributes.BOLD
-                  : undefined
+                subagent.status === "running" ? TextAttributes.BOLD : undefined
               }
             >
               {subagent.status === "running" ? "→" : "✓"}{" "}

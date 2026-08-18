@@ -1,24 +1,21 @@
 /**
- * Live pty test: boot the TUI, run a workflow, and verify the workflow panel
- * renders.
+ * Live pty test: boot the TUI, open the settings overlay (Ctrl+S), and verify
+ * it renders.
  *
- * Usage: node scripts/pty-workflow-test.mjs
+ * Usage: node scripts/pty-settings-test.mjs
  */
 import { spawn } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { setTimeout as sleep } from "node:timers/promises";
 
-const PROMPT =
-  "Use the workflow tool to run a simple workflow with one step labeled 'hello'. Then stop.";
-
-const wrapperPath = "/tmp/pty-workflow-wrapper.sh";
+const wrapperPath = "/tmp/pty-settings-wrapper.sh";
 const wrapper = `#!/bin/sh
 stty rows 40 cols 120 2>/dev/null || true
-( sleep 6; printf '%s\\r' "${PROMPT.replace(/"/g, '\\"')}"; sleep 50 ) | bun src/index.tsx
+( sleep 6; printf '\\023'; sleep 15 ) | bun src/index.tsx
 `;
 writeFileSync(wrapperPath, wrapper, { mode: 0o755 });
 
-const logPath = "/tmp/pty-workflow.log";
+const logPath = "/tmp/pty-settings.log";
 const log = spawn("script", ["-q", logPath, wrapperPath], {
   cwd: process.cwd(),
   stdio: ["ignore", "pipe", "pipe"],
@@ -29,7 +26,7 @@ log.stdout.on("data", (d) => (out += d.toString()));
 log.stderr.on("data", (d) => (out += d.toString()));
 
 const pid = log.pid;
-await sleep(62_000);
+await sleep(24_000);
 try {
   process.kill(pid, "SIGKILL");
 } catch {}
@@ -40,13 +37,14 @@ const clean = out
   .replace(/\x1b\][^\x07]*\x07/g, "")
   .replace(/\x1b[()][0-9A-B]/g, "");
 
-const hasWorkflowPanel =
-  /workflow\s*\d/.test(clean) || /hello-step/.test(clean);
-const hasStep = /hello/.test(clean);
+const hasSettings = /Settings/.test(clean);
+const hasModel = /Model:/.test(clean);
+const hasShortcuts = /Shortcuts:/.test(clean);
 
-console.log("=== WORKFLOW TEST RESULTS ===");
-console.log("workflow panel rendered:", hasWorkflowPanel);
-console.log("step visible:", hasStep);
+console.log("=== SETTINGS TEST RESULTS ===");
+console.log("settings overlay rendered:", hasSettings);
+console.log("model line visible:", hasModel);
+console.log("shortcuts visible:", hasShortcuts);
 console.log("log size:", out.length, "bytes");
 
-process.exit(hasWorkflowPanel ? 0 : 1);
+process.exit(hasSettings && hasModel ? 0 : 1);

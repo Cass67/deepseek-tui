@@ -7,7 +7,10 @@ import { fileURLToPath } from "node:url";
 
 const APP_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const config = process.argv[2] ?? resolve(APP_ROOT, "cordis.yml");
-const bin = resolve(APP_ROOT, "node_modules/@deepseek-ai/dsh-sdk-jsonrpc-demo/lib/bin.js");
+const bin = resolve(
+  APP_ROOT,
+  "node_modules/@deepseek-ai/dsh-sdk-jsonrpc-demo/lib/bin.js",
+);
 const cwd = process.env.DSH_CWD ?? process.cwd();
 
 const provider = process.env.DSH_PROVIDER ?? "qwen-token-plan";
@@ -45,7 +48,14 @@ function handleFrame(frame) {
       finish(1);
     } else {
       console.log("BOOT OK: initialize returned a result");
-      child.stdin.write(JSON.stringify({ jsonrpc: "2.0", id: 3, method: "command/list", params: { sessionId: "boot-test" } }) + "\n");
+      child.stdin.write(
+        JSON.stringify({
+          jsonrpc: "2.0",
+          id: 3,
+          method: "command/list",
+          params: { sessionId: "boot-test" },
+        }) + "\n",
+      );
     }
     return;
   }
@@ -55,7 +65,9 @@ function handleFrame(frame) {
       finish(1);
     } else {
       const list = frame.result?.commands ?? frame.result ?? [];
-      const cmds = list.map((c) => (typeof c === "string" ? c : c.name ?? c.command ?? JSON.stringify(c)));
+      const cmds = list.map((c) =>
+        typeof c === "string" ? c : (c.name ?? c.command ?? JSON.stringify(c)),
+      );
       console.log("COMMANDS (" + cmds.length + "):", cmds.join(", "));
       finish(0);
     }
@@ -71,7 +83,11 @@ child.stdout.on("data", (d) => {
     buffer = buffer.slice(idx + 1);
     if (!line) continue;
     let frame;
-    try { frame = JSON.parse(line); } catch { continue; }
+    try {
+      frame = JSON.parse(line);
+    } catch {
+      continue;
+    }
     handleFrame(frame);
     if (done) return;
   }
@@ -81,8 +97,14 @@ function finish(code) {
   if (done) return;
   done = true;
   clearTimeout(timer);
-  child.stdin.write(JSON.stringify({ jsonrpc: "2.0", id: 2, method: "shutdown", params: {} }) + "\n");
-  setTimeout(() => { child.kill(); process.exit(code); }, 500);
+  child.stdin.write(
+    JSON.stringify({ jsonrpc: "2.0", id: 2, method: "shutdown", params: {} }) +
+      "\n",
+  );
+  setTimeout(() => {
+    child.kill();
+    process.exit(code);
+  }, 500);
 }
 
 child.on("exit", (code) => {

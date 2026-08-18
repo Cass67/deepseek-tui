@@ -80,9 +80,7 @@ export const MessageBubble = memo(function MessageBubble({
                     : theme.text
               }
               attributes={
-                todo.status === "in_progress"
-                  ? TextAttributes.BOLD
-                  : undefined
+                todo.status === "in_progress" ? TextAttributes.BOLD : undefined
               }
             >
               {todo.status === "completed"

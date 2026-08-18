@@ -62,9 +62,7 @@ export const WorkflowPanel = memo(function WorkflowPanel({
               }
             >
               {"  "}
-              {member.outcome
-                ? OUTCOME_MARK[member.outcome]
-                : "…"}{" "}
+              {member.outcome ? OUTCOME_MARK[member.outcome] : "…"}{" "}
               {member.label}
               {member.phase ? ` (${member.phase})` : ""}
             </text>

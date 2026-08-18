@@ -4,6 +4,7 @@ Goal: make the TUI expose **all** DeepSeek Harness functionality, not just the
 20 plugins currently wired in `cordis.yml`.
 
 This document is the result of reading both repos:
+
 - Harness: `~/git/deepseek-harness` (the `dsh-base` bundle = the reference
   "complete" composition; `docs/tool-catalog.md`; `packages/core/session/src/known-event-types.ts`)
 - TUI: `~/git/deepseek-tui` (`cordis.yml`, `src/useHarness.ts`, `src/commands.ts`,
@@ -21,18 +22,18 @@ TUI as a `session.event` notification, and the TUI already has a **generic
 slash-command passthrough** (`command/list` + `command/execute`).
 
 That last fact is the key to the whole effort: **most harness features can be
-exposed without any new wire protocol**, because (a) their *state* already flows
-through `session.event`, and (b) their *actions* are slash commands the TUI can
+exposed without any new wire protocol**, because (a) their _state_ already flows
+through `session.event`, and (b) their _actions_ are slash commands the TUI can
 already discover and execute. Only a handful of features need new JSON-RPC
 methods (catalogs / request-response UIs).
 
 So "implement all harness functionality" decomposes into **three layers**:
 
-| Layer | Where | What it means |
-|---|---|---|
-| **L1 — Composition** | `cordis.yml` | Add/enable the harness plugin so the capability exists server-side. |
-| **L2 — Wire** | `packages/sdk/protocol` + `sdk/server` + `sdk/client` | New JSON-RPC methods/notifications, only where a feature needs request/response (catalogs, settings, feedback, MCP). |
-| **L3 — UI** | `deepseek-tui/src/*` | Render new `session.event` types in `processEvent`; add overlays/panels/pickers; wire new local commands. |
+| Layer                | Where                                                 | What it means                                                                                                        |
+| -------------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| **L1 — Composition** | `cordis.yml`                                          | Add/enable the harness plugin so the capability exists server-side.                                                  |
+| **L2 — Wire**        | `packages/sdk/protocol` + `sdk/server` + `sdk/client` | New JSON-RPC methods/notifications, only where a feature needs request/response (catalogs, settings, feedback, MCP). |
+| **L3 — UI**          | `deepseek-tui/src/*`                                  | Render new `session.event` types in `processEvent`; add overlays/panels/pickers; wire new local commands.            |
 
 A feature is "complete" when all the layers it needs are done. Many features are
 **L1-only** (the model gets a new tool; the TUI already renders `tool/call` +
@@ -75,12 +76,12 @@ The spine imports and can mount: `llm`, `session`, `session-title` (fallback),
 
 The TUI's `cordis.yml` currently **turns most of the interesting ones off**:
 
-| Spine capability | TUI config today | Effect |
-|---|---|---|
-| `skills` | `enabled: false` | No skill registry / `skill` tool |
-| `toolJobs` | `false` | No `job_*` tools |
-| `toolBash.enableRunInBackground` | `false` | No background bash |
-| `goals` | *(omitted)* | Goal domain + `tool-goal` not mounted |
+| Spine capability                 | TUI config today | Effect                                |
+| -------------------------------- | ---------------- | ------------------------------------- |
+| `skills`                         | `enabled: false` | No skill registry / `skill` tool      |
+| `toolJobs`                       | `false`          | No `job_*` tools                      |
+| `toolBash.enableRunInBackground` | `false`          | No background bash                    |
+| `goals`                          | _(omitted)_      | Goal domain + `tool-goal` not mounted |
 
 So a large slice of "missing" features is actually **already in the process, just
 switched off**. Enabling them is the cheapest win available.
@@ -109,45 +110,45 @@ Legend — **L1** add/enable plugin in `cordis.yml`; **L2** new JSON-RPC method;
 These are the biggest capability gaps for a coding agent. Almost all are **L1 +
 optional L3** (the generic `ToolCard` already renders them).
 
-| Feature | Package(s) | Layers | Effort | Notes |
-|---|---|---|---|---|
-| **glob / grep** | `tool-fs-search` | L1 | S | Spawns packaged ripgrep via `ctx.subprocess` (already wired). Highest value-per-effort. |
-| **todo_write** | `tool-todo` | L1 + L3 | S–M | TUI already parses `todo/write`; upgrade the flat status line to a live checklist panel. |
-| **str_replace_editor** | `tool-str-replace-editor` | L1 | S | Alternate editor; composes with existing `ctx.fs`. |
-| **web_search** | `web` + `web-search-deepseek` + `tool-web` | L1 | S–M | Needs `DEEPSEEK_API_KEY` (or another search provider). `fetch` stays off. |
-| **subagents** | `subagent` + `subagent-spawn-in-process` + `subagent-fork-in-process` + `tool-subagent` (×2) + `tool-subagent-control` + `tool-subagent-control/list-agents` + `tool-subagent-report` | L1 + L3 | M–L | `subagent.started`/`subagent.finished` are **already in the protocol**. Add a subagents panel (running children, open child session). |
-| **background jobs** | enable spine `toolJobs` + `toolBash.enableRunInBackground` | L1 + L3 | M | `job_list`/`job_output`/`job_kill` tools; add a jobs panel. |
-| **skills** | enable spine `skills` | L1 + L2 + L3 | M | Needs a `skills/list` catalog method (web uses `ctx.remote.api.skills`) + a skill picker. |
-| **goals** | enable spine `goals` + `command-goal` | L1 + L3 | M | `/goal` command already registers; `goal/change` events flow; add a goal panel. |
-| **plan mode** | `plan-mode` | L1 + L3 | M | `/plan` command + `exit_plan_mode` tool + `plan/mode` events. Add a plan banner + approval surface. High value. |
-| **workflow** | `workflow-worker-thread` + `tool-workflow` | L1 + L3 | M | `tool-workflow/run-*` + `agent-*` events; add a run view. |
-| **ralph** | `tool-ralph` | L1 | S | Fixed fresh-agent iteration loop; renders as a tool. |
-| **terminal (PTY)** | `terminal` + `terminal-bash` + `tool-terminal` | L1 + L3 | M–L | Six `terminal_*` tools; add a terminal panel. |
-| **LSP** | `lsp` + `lsp-stdio` + `tool-lsp` | L1 + L2 + L3 | M | `lsp` tool + a status surface; needs a registered provider. |
-| **MCP** | `mcp-client` | L1 + L2 + L3 | M–L | MCP servers bring arbitrary tools; needs `mcp/list|add|remove` + a management UI. |
-| **session-query tools** | `tool-session-query` | L1 | S | Five read-only `session_*` tools for the model. |
-| **schedule** | `schedule` | L1 + L3 | M | `schedule_*` tools + `schedule/change` events; add a schedule list. |
-| **code mode** | `code-runtime` (+ `code-runtime-worker-thread`) | L1 + L3 | M | `run_code` tool under `tools.mode: code`; add a code-dispatch view. |
-| **hooks** | `hooks-claude-code` / `hooks-codex` | L1 | S | `hook/invoked` + `hook/result` events; optional. |
+| Feature                 | Package(s)                                                                                                                                                                            | Layers       | Effort | Notes                                                                                                                                 |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ | ------ | ------------------------------------------------------------------------------------------------------------------------------------- | --- | -------------------------- |
+| **glob / grep**         | `tool-fs-search`                                                                                                                                                                      | L1           | S      | Spawns packaged ripgrep via `ctx.subprocess` (already wired). Highest value-per-effort.                                               |
+| **todo_write**          | `tool-todo`                                                                                                                                                                           | L1 + L3      | S–M    | TUI already parses `todo/write`; upgrade the flat status line to a live checklist panel.                                              |
+| **str_replace_editor**  | `tool-str-replace-editor`                                                                                                                                                             | L1           | S      | Alternate editor; composes with existing `ctx.fs`.                                                                                    |
+| **web_search**          | `web` + `web-search-deepseek` + `tool-web`                                                                                                                                            | L1           | S–M    | Needs `DEEPSEEK_API_KEY` (or another search provider). `fetch` stays off.                                                             |
+| **subagents**           | `subagent` + `subagent-spawn-in-process` + `subagent-fork-in-process` + `tool-subagent` (×2) + `tool-subagent-control` + `tool-subagent-control/list-agents` + `tool-subagent-report` | L1 + L3      | M–L    | `subagent.started`/`subagent.finished` are **already in the protocol**. Add a subagents panel (running children, open child session). |
+| **background jobs**     | enable spine `toolJobs` + `toolBash.enableRunInBackground`                                                                                                                            | L1 + L3      | M      | `job_list`/`job_output`/`job_kill` tools; add a jobs panel.                                                                           |
+| **skills**              | enable spine `skills`                                                                                                                                                                 | L1 + L2 + L3 | M      | Needs a `skills/list` catalog method (web uses `ctx.remote.api.skills`) + a skill picker.                                             |
+| **goals**               | enable spine `goals` + `command-goal`                                                                                                                                                 | L1 + L3      | M      | `/goal` command already registers; `goal/change` events flow; add a goal panel.                                                       |
+| **plan mode**           | `plan-mode`                                                                                                                                                                           | L1 + L3      | M      | `/plan` command + `exit_plan_mode` tool + `plan/mode` events. Add a plan banner + approval surface. High value.                       |
+| **workflow**            | `workflow-worker-thread` + `tool-workflow`                                                                                                                                            | L1 + L3      | M      | `tool-workflow/run-*` + `agent-*` events; add a run view.                                                                             |
+| **ralph**               | `tool-ralph`                                                                                                                                                                          | L1           | S      | Fixed fresh-agent iteration loop; renders as a tool.                                                                                  |
+| **terminal (PTY)**      | `terminal` + `terminal-bash` + `tool-terminal`                                                                                                                                        | L1 + L3      | M–L    | Six `terminal_*` tools; add a terminal panel.                                                                                         |
+| **LSP**                 | `lsp` + `lsp-stdio` + `tool-lsp`                                                                                                                                                      | L1 + L2 + L3 | M      | `lsp` tool + a status surface; needs a registered provider.                                                                           |
+| **MCP**                 | `mcp-client`                                                                                                                                                                          | L1 + L2 + L3 | M–L    | MCP servers bring arbitrary tools; needs `mcp/list                                                                                    | add | remove` + a management UI. |
+| **session-query tools** | `tool-session-query`                                                                                                                                                                  | L1           | S      | Five read-only `session_*` tools for the model.                                                                                       |
+| **schedule**            | `schedule`                                                                                                                                                                            | L1 + L3      | M      | `schedule_*` tools + `schedule/change` events; add a schedule list.                                                                   |
+| **code mode**           | `code-runtime` (+ `code-runtime-worker-thread`)                                                                                                                                       | L1 + L3      | M      | `run_code` tool under `tools.mode: code`; add a code-dispatch view.                                                                   |
+| **hooks**               | `hooks-claude-code` / `hooks-codex`                                                                                                                                                   | L1           | S      | `hook/invoked` + `hook/result` events; optional.                                                                                      |
 
 ### 3.2 Agent behavior / policy (mostly L1-only, little or no UI)
 
 These make the agent more robust; the TUI needs at most a status line.
 
-| Feature | Package(s) | Layers | Effort | Notes |
-|---|---|---|---|---|
-| **tool-result pruner** | `compaction-tool-result-pruner` | L1 | S | Compacts oversized tool results before the main compactor. |
-| **spill** | `spill-local` + `spill-policy` | L1 | S | Durable overflow for large outputs (pairs with `tool-fs-search` caps). |
-| **tool-call timeout** | `timeout-policy` (guard) | L1 | S | Enforced deadlines on tool calls. |
-| **repeat-tool reminder** | `repeat-tool-reminder` (guard) | L1 | S | Nudges the model out of loops. |
-| **sandbox + permission presets** | `sandbox-local` + `sandbox-policy` + `bash-sandbox` + `permission-presets` | L1 + L3 | M | Replaces plain `bash-local` with a sandboxed executor; `sandbox/mode` + `permission/preset` events; add a permission-mode picker (read-only / workspace-write / danger-full-access). |
-| **LLM session titles** | `session-title-llm` (`session-title-first-prompt-llm`) | L1 | S | Better `/sessions` titles; `session/title-llm-request` event. |
-| **session projection** | `session-projection` | L1 | S | Required for `list_agents` (subagents) and plan/goal unit state. |
-| **managed credentials** | `credentials-local` | L1 | S | `$DSH_HOME/.credentials.yaml` store; complements the TUI's own `auth.json`. |
-| **default model** | `agent-default-model` | L1 | S | Saved default route for new sessions. |
-| **native DeepSeek adapter** | `llm-deepseek` | L1 | S | The TUI currently reaches DeepSeek through the `llm-pi-ai` route; add the native adapter for parity. |
-| **telemetry** | `session-telemetry-otel` | L1 | S | Off by default (`DSH_TELEMETRY_MODE`); optional. |
-| **agent presets / persona** | `preset/agent-presets` + `preset/persona` | L1 + L3 | S–M | `agent-preset/selected` event; add a preset picker. |
+| Feature                          | Package(s)                                                                 | Layers  | Effort | Notes                                                                                                                                                                                |
+| -------------------------------- | -------------------------------------------------------------------------- | ------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **tool-result pruner**           | `compaction-tool-result-pruner`                                            | L1      | S      | Compacts oversized tool results before the main compactor.                                                                                                                           |
+| **spill**                        | `spill-local` + `spill-policy`                                             | L1      | S      | Durable overflow for large outputs (pairs with `tool-fs-search` caps).                                                                                                               |
+| **tool-call timeout**            | `timeout-policy` (guard)                                                   | L1      | S      | Enforced deadlines on tool calls.                                                                                                                                                    |
+| **repeat-tool reminder**         | `repeat-tool-reminder` (guard)                                             | L1      | S      | Nudges the model out of loops.                                                                                                                                                       |
+| **sandbox + permission presets** | `sandbox-local` + `sandbox-policy` + `bash-sandbox` + `permission-presets` | L1 + L3 | M      | Replaces plain `bash-local` with a sandboxed executor; `sandbox/mode` + `permission/preset` events; add a permission-mode picker (read-only / workspace-write / danger-full-access). |
+| **LLM session titles**           | `session-title-llm` (`session-title-first-prompt-llm`)                     | L1      | S      | Better `/sessions` titles; `session/title-llm-request` event.                                                                                                                        |
+| **session projection**           | `session-projection`                                                       | L1      | S      | Required for `list_agents` (subagents) and plan/goal unit state.                                                                                                                     |
+| **managed credentials**          | `credentials-local`                                                        | L1      | S      | `$DSH_HOME/.credentials.yaml` store; complements the TUI's own `auth.json`.                                                                                                          |
+| **default model**                | `agent-default-model`                                                      | L1      | S      | Saved default route for new sessions.                                                                                                                                                |
+| **native DeepSeek adapter**      | `llm-deepseek`                                                             | L1      | S      | The TUI currently reaches DeepSeek through the `llm-pi-ai` route; add the native adapter for parity.                                                                                 |
+| **telemetry**                    | `session-telemetry-otel`                                                   | L1      | S      | Off by default (`DSH_TELEMETRY_MODE`); optional.                                                                                                                                     |
+| **agent presets / persona**      | `preset/agent-presets` + `preset/persona`                                  | L1 + L3 | S–M    | `agent-preset/selected` event; add a preset picker.                                                                                                                                  |
 
 ### 3.3 TUI-only UI surfaces (L3, mirror the web `ui-*` modules)
 
@@ -155,36 +156,36 @@ The web client ships 28 `ui-*` modules. The TUI has rough equivalents for
 conversation, tool, attachment, model-selection, theme, user-questions, commands.
 Missing surfaces, mapped to the web module they would mirror:
 
-| TUI surface | Mirrors | Depends on | Effort |
-|---|---|---|---|
-| Goal panel | `ui-goal` | §3.1 goals | M |
-| Jobs panel | `ui-jobs` | §3.1 background jobs | M |
-| Subagents panel | `ui-subagent` | §3.1 subagents | M |
-| Plan banner + approval | `ui-plan` | §3.1 plan mode | M |
-| Skill picker | `ui-skill` | §3.1 skills (+ L2) | M |
-| Workflow run view | `ui-workflow-run` | §3.1 workflow | M |
-| Message feedback (👍/👎) | `ui-message-feedback` | `command-feedback` (+ L2 `feedback/record`) | S–M |
-| Permission-mode picker | `ui-permission-presets` | §3.2 sandbox | S |
-| Settings (general/models/plugins) | `ui-settings*` | L2 `settings/get|set` | M–L |
-| Trajectory view | `ui-trajectory` | session events | M |
-| Deliverables | `ui-deliverables` | session events | S–M |
-| Agent-preset picker | `ui-agent-preset` | §3.2 presets | S |
-| Directory picker | `ui-directory-picker-*` | `ctx.fs` | S |
-| Input triggers (`@` mentions) | `ui-input-trigger` | subagents/skills | S–M |
+| TUI surface                       | Mirrors                 | Depends on                                  | Effort |
+| --------------------------------- | ----------------------- | ------------------------------------------- | ------ | --- |
+| Goal panel                        | `ui-goal`               | §3.1 goals                                  | M      |
+| Jobs panel                        | `ui-jobs`               | §3.1 background jobs                        | M      |
+| Subagents panel                   | `ui-subagent`           | §3.1 subagents                              | M      |
+| Plan banner + approval            | `ui-plan`               | §3.1 plan mode                              | M      |
+| Skill picker                      | `ui-skill`              | §3.1 skills (+ L2)                          | M      |
+| Workflow run view                 | `ui-workflow-run`       | §3.1 workflow                               | M      |
+| Message feedback (👍/👎)          | `ui-message-feedback`   | `command-feedback` (+ L2 `feedback/record`) | S–M    |
+| Permission-mode picker            | `ui-permission-presets` | §3.2 sandbox                                | S      |
+| Settings (general/models/plugins) | `ui-settings*`          | L2 `settings/get                            | set`   | M–L |
+| Trajectory view                   | `ui-trajectory`         | session events                              | M      |
+| Deliverables                      | `ui-deliverables`       | session events                              | S–M    |
+| Agent-preset picker               | `ui-agent-preset`       | §3.2 presets                                | S      |
+| Directory picker                  | `ui-directory-picker-*` | `ctx.fs`                                    | S      |
+| Input triggers (`@` mentions)     | `ui-input-trigger`      | subagents/skills                            | S–M    |
 
 ### 3.4 New wire protocol (L2) — the small set that actually needs it
 
 Everything else rides on `session.event` + `command/execute`. The features that
 genuinely need a new request/response method:
 
-| Method(s) | For | Why events/commands aren't enough |
-|---|---|---|
-| `skills/list` | skill picker | Catalog is a query, not a session event. |
-| `feedback/record` | message feedback | Write path keyed to a message id. |
-| `settings/get` + `settings/set` | settings UI | Read/write the settings document. |
-| `mcp/list` + `mcp/add` + `mcp/remove` | MCP management | Server lifecycle is request/response. |
-| `lsp/status` | LSP surface | Provider/server health query. |
-| `agent-presets/list` | preset picker | Catalog query. |
+| Method(s)                             | For              | Why events/commands aren't enough        |
+| ------------------------------------- | ---------------- | ---------------------------------------- |
+| `skills/list`                         | skill picker     | Catalog is a query, not a session event. |
+| `feedback/record`                     | message feedback | Write path keyed to a message id.        |
+| `settings/get` + `settings/set`       | settings UI      | Read/write the settings document.        |
+| `mcp/list` + `mcp/add` + `mcp/remove` | MCP management   | Server lifecycle is request/response.    |
+| `lsp/status`                          | LSP surface      | Provider/server health query.            |
+| `agent-presets/list`                  | preset picker    | Catalog query.                           |
 
 Optional (can be deferred or done via `command/execute`): `jobs/list|kill|output`,
 `subagents/list`, `goals/list` — all of these also exist as model tools and slash
@@ -198,12 +199,15 @@ Ordered by value-per-effort. Each phase ends with a smoke test: launch the TUI,
 exercise the new feature, confirm the event renders and the action works.
 
 ### Phase 0 — Baseline (do first)
+
 - [ ] Confirm `pnpm install && pnpm run typecheck && pnpm run build` in the TUI.
 - [ ] Smoke-run one full turn against the harness.
 - [ ] Tag a `pre-feature-parity` checkpoint.
 
 ### Phase 1 — Cheap capability wins (L1-only + enable-the-spine) ✅ DONE
+
 The single highest-leverage phase. No new protocol, minimal UI.
+
 - [x] `tool-fs-search` (glob/grep) — **the** missing coding primitive.
 - [x] `tool-todo` + upgrade `todo/write` rendering to a live checklist.
 - [x] `tool-str-replace-editor`.
@@ -218,6 +222,7 @@ The single highest-leverage phase. No new protocol, minimal UI.
   build, 30 unit tests, and boot test all green.
 
 ### Phase 2 — Subagents, jobs, web (L1 + L3 panels) ✅
+
 - [x] Subagent stack (spawn + fork in-process, control, report) + subagents panel.
 - [x] Background jobs (enable `toolJobs` + `enableRunInBackground`) + jobs panel.
 - [x] `web` + `web-search-deepseek` + `tool-web` (gated on `DEEPSEEK_API_KEY`).
@@ -229,16 +234,18 @@ The single highest-leverage phase. No new protocol, minimal UI.
   (`✓ bash-1 [bash] …`) render. 31 unit tests + typecheck + build + boot green.
 
 ### Phase 3 — Richer UI + the L2 protocol additions
+
 - [ ] Protocol: `skills/list`, `feedback/record`, `settings/get|set`,
       `agent-presets/list` (and `mcp/*`, `lsp/status` if those land now).
 - [ ] Skill picker, message feedback, agent-preset picker, directory picker.
-- [ ] Settings overlay (general + models first; plugins inventory later).
+- [x] Settings overlay (Ctrl+S; shows model, reasoning, theme, session + shortcuts).
 - [x] Goal panel (driven by `goal/change` events; `tool-goal` mounted).
 - [x] Workflow run view (driven by `tool-workflow/*` events; `tool-workflow` mounted).
 - [ ] Trajectory view, deliverables.
-- **VERIFY (partial):** goal + workflow panels render live with real events.
+- **VERIFY (partial):** settings, goal, workflow panels render live.
 
 ### Phase 4 — Power features (L1 + L2 + L3)
+
 - [ ] Sandbox + permission presets + permission-mode picker.
 - [ ] MCP client + management UI.
 - [ ] LSP + status surface.
@@ -249,6 +256,7 @@ The single highest-leverage phase. No new protocol, minimal UI.
 - **VERIFY:** sandboxed bash, an MCP tool call, a PTY session, a scheduled run.
 
 ### Phase 5 — Parity sweep + hardening
+
 - [ ] Cross-check `known-event-types.ts` (45 types) against `processEvent`; render
       or explicitly mark-ignorable every type the composition can now emit.
 - [ ] Cross-check `docs/tool-catalog.md` against the mounted tools; every shipped
@@ -267,31 +275,31 @@ A TUI is "complete" when every row is green. "Reachable" = the model can call it
 (L1 done). "Visible" = the TUI renders its state (L3 done). "Controllable" = the
 user can drive it (command or L2 method).
 
-| Capability | Reachable (L1) | Visible (L3) | Controllable |
-|---|---|---|---|
-| read / write / edit / read_image | ✅ | ✅ | ✅ |
-| glob / grep | ☐ | ☐ (generic) | ☐ |
-| bash (one-shot) | ✅ | ✅ | ✅ |
-| bash (background) + job_* | ✅ | ✅ (jobs panel) | ☐ |
-| str_replace_editor | ☐ | ☐ (generic) | ☐ |
-| todo_write | ✅ | ✅ (todo panel) | ☐ |
-| ask_user_question | ✅ | ✅ | ✅ |
-| subagent / subagent_fork | ✅ | ✅ (subagents panel) | ☐ |
-| skill | ☐ | ☐ | ☐ |
-| goal (create/update/…) | ☐ | ☐ | ☐ (`/goal`) |
-| plan mode + exit_plan_mode | ✅ | ✅ (banner) | ✅ (`/plan`) |
-| web_search | ✅ | ☐ (generic) | ☐ |
-| workflow / ralph | ✅ | ☐ (generic) | ☐ |
-| terminal_* (PTY) | ☐ | ☐ | ☐ |
-| lsp | ☐ | ☐ | ☐ |
-| mcp tools | ☐ | ☐ | ☐ |
-| session_* query tools | ☐ | ☐ (generic) | ☐ |
-| schedule_* | ☐ | ☐ | ☐ |
-| run_code (code mode) | ☐ | ☐ | ☐ |
-| feedback | ☐ | ☐ | ☐ |
-| sandbox + permission presets | ☐ | ☐ | ☐ |
-| agent presets | ☐ | ☐ | ☐ |
-| settings (models/plugins) | ☐ | ☐ | ☐ |
+| Capability                       | Reachable (L1) | Visible (L3)         | Controllable |
+| -------------------------------- | -------------- | -------------------- | ------------ |
+| read / write / edit / read_image | ✅             | ✅                   | ✅           |
+| glob / grep                      | ☐              | ☐ (generic)          | ☐            |
+| bash (one-shot)                  | ✅             | ✅                   | ✅           |
+| bash (background) + job\_\*      | ✅             | ✅ (jobs panel)      | ☐            |
+| str_replace_editor               | ☐              | ☐ (generic)          | ☐            |
+| todo_write                       | ✅             | ✅ (todo panel)      | ☐            |
+| ask_user_question                | ✅             | ✅                   | ✅           |
+| subagent / subagent_fork         | ✅             | ✅ (subagents panel) | ☐            |
+| skill                            | ☐              | ☐                    | ☐            |
+| goal (create/update/…)           | ☐              | ☐                    | ☐ (`/goal`)  |
+| plan mode + exit_plan_mode       | ✅             | ✅ (banner)          | ✅ (`/plan`) |
+| web_search                       | ✅             | ☐ (generic)          | ☐            |
+| workflow / ralph                 | ✅             | ☐ (generic)          | ☐            |
+| terminal\_\* (PTY)               | ☐              | ☐                    | ☐            |
+| lsp                              | ☐              | ☐                    | ☐            |
+| mcp tools                        | ☐              | ☐                    | ☐            |
+| session\_\* query tools          | ☐              | ☐ (generic)          | ☐            |
+| schedule\_\*                     | ☐              | ☐                    | ☐            |
+| run_code (code mode)             | ☐              | ☐                    | ☐            |
+| feedback                         | ☐              | ☐                    | ☐            |
+| sandbox + permission presets     | ☐              | ☐                    | ☐            |
+| agent presets                    | ☐              | ☐                    | ☐            |
+| settings (models/plugins)        | ☐              | ☐                    | ☐            |
 
 ---
 
@@ -304,7 +312,7 @@ user can drive it (command or L2 method).
      goal/jobs/skills/bash/loop).
    - **(b) Switch to `dsh-base`** and drop the spine — larger diff, but exact
      parity with the shipped product and its defaults.
-   Recommend **(a)** for Phases 1–3, revisit **(b)** only if parity drifts.
+     Recommend **(a)** for Phases 1–3, revisit **(b)** only if parity drifts.
 
 2. **Protocol surface stays small.** Resist adding RPC methods for anything that
    can be a slash command + session event. The generic `command/execute` is the

@@ -408,10 +408,7 @@ export function processEvent(
       });
       const toolName = callId ? ctx.toolCallNames.get(callId) : undefined;
       // Mark the subagent as done when its tool result arrives.
-      if (
-        callId &&
-        (toolName === "subagent" || toolName === "subagent_fork")
-      ) {
+      if (callId && (toolName === "subagent" || toolName === "subagent_fork")) {
         const subagent = ctx.subagents.find((s) => s.id === callId);
         if (subagent) subagent.status = "done";
       }
@@ -492,7 +489,11 @@ export function processEvent(
         break;
       }
       const goal = data.goal as Record<string, unknown> | undefined;
-      if (goal && typeof goal.id === "string" && typeof goal.objective === "string") {
+      if (
+        goal &&
+        typeof goal.id === "string" &&
+        typeof goal.objective === "string"
+      ) {
         ctx.goal = {
           id: goal.id,
           objective: goal.objective,
@@ -533,7 +534,8 @@ export function processEvent(
           (m) => m.seq === data.seq && m.outcome === undefined,
         );
         if (member) {
-          member.outcome = (data.outcome as WorkflowMember["outcome"]) ?? "completed";
+          member.outcome =
+            (data.outcome as WorkflowMember["outcome"]) ?? "completed";
         }
       }
       break;
