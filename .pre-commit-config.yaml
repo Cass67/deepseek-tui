@@ -97,7 +97,13 @@ repos:
       - id: eslint
         name: eslint
         entry: >-
-          bash -lc 'if [ -x ./node_modules/.bin/eslint ]; then
+          bash -lc 'has_cfg=0; for c in eslint.config.js eslint.config.mjs
+          eslint.config.cjs eslint.config.ts eslint.config.mts eslint.config.cts
+          .eslintrc .eslintrc.js .eslintrc.cjs .eslintrc.json .eslintrc.yaml
+          .eslintrc.yml; do [ -e "$c" ] && has_cfg=1 && break; done; if [
+          "$has_cfg" -eq 0 ] && [ -f package.json ] && grep -q
+          "\"eslintConfig\"" package.json; then has_cfg=1; fi; if [ "$has_cfg"
+          -eq 0 ]; then exit 0; fi; if [ -x ./node_modules/.bin/eslint ]; then
           ./node_modules/.bin/eslint "$@"; else eslint "$@"; fi' --
         language: system
         files: \.(js|jsx|mjs|cjs)$
@@ -118,7 +124,13 @@ repos:
       - id: eslint
         name: eslint
         entry: >-
-          bash -lc 'if [ -x ./node_modules/.bin/eslint ]; then
+          bash -lc 'has_cfg=0; for c in eslint.config.js eslint.config.mjs
+          eslint.config.cjs eslint.config.ts eslint.config.mts eslint.config.cts
+          .eslintrc .eslintrc.js .eslintrc.cjs .eslintrc.json .eslintrc.yaml
+          .eslintrc.yml; do [ -e "$c" ] && has_cfg=1 && break; done; if [
+          "$has_cfg" -eq 0 ] && [ -f package.json ] && grep -q
+          "\"eslintConfig\"" package.json; then has_cfg=1; fi; if [ "$has_cfg"
+          -eq 0 ]; then exit 0; fi; if [ -x ./node_modules/.bin/eslint ]; then
           ./node_modules/.bin/eslint "$@"; else eslint "$@"; fi' --
         language: system
         files: \.(ts|tsx|mts|cts)$
