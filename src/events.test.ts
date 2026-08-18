@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type {
   ChatMessage,
+  FeedbackEntry,
   GoalInfo,
   JobInfo,
   SubagentInfo,
@@ -17,6 +18,7 @@ function makeCtx() {
   const jobs: JobInfo[] = [];
   const toolCallNames = new Map<string, string>();
   const workflowRuns: WorkflowRun[] = [];
+  const feedback: FeedbackEntry[] = [];
   const ctx = {
     streamingText: "",
     assistantId: null as string | null,
@@ -26,6 +28,7 @@ function makeCtx() {
     jobs,
     goal: null as GoalInfo | null,
     workflowRuns,
+    feedback,
     toolCallNames,
   };
   const apply = (event: Record<string, unknown>): void => {
@@ -116,6 +119,7 @@ test("keeps reasoning out of answer markdown and exposes long-running activity",
     jobs: [],
     goal: null,
     workflowRuns: [],
+    feedback: [],
     toolCallNames: new Map<string, string>(),
   });
 
@@ -352,6 +356,7 @@ test("tracks workflow runs and member outcomes", () => {
     jobs: [],
     goal: null,
     workflowRuns: shared,
+    feedback: [],
     toolCallNames: new Map<string, string>(),
   };
   const messages: ChatMessage[] = [];
@@ -395,4 +400,35 @@ test("tracks workflow runs and member outcomes", () => {
     ctx,
   );
   assert.equal(shared[0].ended, true);
+});
+
+test("tracks feedback entries", () => {
+  const { messages, apply } = makeCtx();
+  const feedback: FeedbackEntry[] = [];
+  const ctx = {
+    streamingText: "",
+    assistantId: null as string | null,
+    usage: { input: 0, output: 0 },
+    planModeActive: false,
+    subagents: [],
+    jobs: [],
+    goal: null,
+    workflowRuns: [],
+    feedback,
+    toolCallNames: new Map<string, string>(),
+  };
+  processEvent(
+    { type: "feedback/record", data: { text: "great answer" } },
+    messages,
+    ctx,
+  );
+  assert.equal(feedback.length, 1);
+  assert.equal(feedback[0].text, "great answer");
+  processEvent(
+    { type: "feedback/record", data: { text: "could be better" } },
+    messages,
+    ctx,
+  );
+  assert.equal(feedback.length, 2);
+  assert.equal(feedback[1].text, "could be better");
 });

@@ -53,6 +53,12 @@ export interface WorkflowRun {
   members: WorkflowMember[];
 }
 
+/** A feedback entry, tracked from `feedback/record` session events. */
+export interface FeedbackEntry {
+  text: string;
+  timestamp: number;
+}
+
 /** A single message in the chat view. */
 export interface ChatMessage {
   id: string;
@@ -99,4 +105,6 @@ export interface AppState {
   goal: GoalInfo | null;
   /** Workflow runs (from `tool-workflow/*` events). */
   workflowRuns: WorkflowRun[];
+  /** Feedback entries (from `feedback/record` events). */
+  feedback: FeedbackEntry[];
 }

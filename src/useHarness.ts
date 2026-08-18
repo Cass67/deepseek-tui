@@ -40,6 +40,7 @@ import type {
   AgentStatus,
   AppState,
   ChatMessage,
+  FeedbackEntry,
   GoalInfo,
   JobInfo,
   SubagentInfo,
@@ -263,6 +264,7 @@ export function processEvent(
     jobs: JobInfo[];
     goal: GoalInfo | null;
     workflowRuns: WorkflowRun[];
+    feedback: FeedbackEntry[];
     toolCallNames: Map<string, string>;
   },
 ): {
@@ -546,6 +548,13 @@ export function processEvent(
       if (run) run.ended = true;
       break;
     }
+    case "feedback/record": {
+      const text = data.text as string | undefined;
+      if (text) {
+        ctx.feedback.push({ text, timestamp: Date.now() });
+      }
+      break;
+    }
   }
 
   return {
@@ -612,12 +621,14 @@ export function replayHistory(events: readonly SessionHistoryEvent[]): {
   jobs: JobInfo[];
   goal: GoalInfo | null;
   workflowRuns: WorkflowRun[];
+  feedback: FeedbackEntry[];
 } {
   const messages: ChatMessage[] = [];
   const usage = { input: 0, output: 0 };
   const subagents: SubagentInfo[] = [];
   const jobs: JobInfo[] = [];
   const workflowRuns: WorkflowRun[] = [];
+  const feedback: FeedbackEntry[] = [];
   const toolCallNames = new Map<string, string>();
   const ctx = {
     streamingText: "",
@@ -628,6 +639,7 @@ export function replayHistory(events: readonly SessionHistoryEvent[]): {
     jobs,
     goal: null as GoalInfo | null,
     workflowRuns,
+    feedback,
     toolCallNames,
   };
   for (const event of events) {
@@ -648,6 +660,7 @@ export function replayHistory(events: readonly SessionHistoryEvent[]): {
     jobs,
     goal: ctx.goal,
     workflowRuns,
+    feedback,
   };
 }
 
@@ -678,6 +691,7 @@ export function useHarness(options: UseHarnessOptions = {}): UseHarnessReturn {
     jobs: [],
     goal: null,
     workflowRuns: [],
+    feedback: [],
   });
 
   const clientRef = useRef<HarnessClient | null>(null);
@@ -699,6 +713,7 @@ export function useHarness(options: UseHarnessOptions = {}): UseHarnessReturn {
   const jobsRef = useRef<JobInfo[]>([]);
   const goalRef = useRef<GoalInfo | null>(null);
   const workflowRunsRef = useRef<WorkflowRun[]>([]);
+  const feedbackRef = useRef<FeedbackEntry[]>([]);
   const toolCallNamesRef = useRef(new Map<string, string>());
   const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sessionIdRef = useRef(initialSessionId);
@@ -743,6 +758,7 @@ export function useHarness(options: UseHarnessOptions = {}): UseHarnessReturn {
         ...run,
         members: [...run.members],
       })),
+      feedback: [...feedbackRef.current],
     }));
   }, []);
 
@@ -835,6 +851,7 @@ export function useHarness(options: UseHarnessOptions = {}): UseHarnessReturn {
                 jobs: jobsRef.current,
                 goal: goalRef.current,
                 workflowRuns: workflowRunsRef.current,
+                feedback: feedbackRef.current,
                 toolCallNames: toolCallNamesRef.current,
               });
               streamingRef.current = result.streamingText;
@@ -1210,6 +1227,7 @@ export function useHarness(options: UseHarnessOptions = {}): UseHarnessReturn {
       jobsRef.current = [];
       goalRef.current = null;
       workflowRunsRef.current = [];
+      feedbackRef.current = [];
       toolCallNamesRef.current = new Map();
       statusRef.current = "idle";
       setActivity(null);
@@ -1227,6 +1245,7 @@ export function useHarness(options: UseHarnessOptions = {}): UseHarnessReturn {
         jobs: [],
         goal: null,
         workflowRuns: [],
+        feedback: [],
         status: "idle",
         activity: null,
         activitySince: null,
@@ -1335,6 +1354,7 @@ export function useHarness(options: UseHarnessOptions = {}): UseHarnessReturn {
         jobsRef.current = replayed.jobs;
         goalRef.current = replayed.goal;
         workflowRunsRef.current = replayed.workflowRuns;
+        feedbackRef.current = replayed.feedback;
         toolCallNamesRef.current = new Map();
         streamingRef.current = "";
         assistantIdRef.current = null;
@@ -1356,6 +1376,7 @@ export function useHarness(options: UseHarnessOptions = {}): UseHarnessReturn {
             ...run,
             members: [...run.members],
           })),
+          feedback: [...replayed.feedback],
           status: "idle",
           activity: null,
           activitySince: null,
