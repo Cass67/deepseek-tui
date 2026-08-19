@@ -1,7 +1,8 @@
 # verify -- the second opinion.
 #
-# Deliberately routed to a DIFFERENT model family from `build`, so verification
-# is not the same model marking its own homework.
+# Routed independently of `build` on purpose, so verification is not the same
+# model marking its own homework. Both sit on the catalog default today; point
+# this at another family once you have credentials for one.
 - id: preset-model
   name: "@deepseek-ai/dsh-agent-default-model"
   config:

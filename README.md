@@ -194,11 +194,16 @@ format from `$CODEX_HOME/config.toml`. A missing file registers no handlers.
 `Ctrl+A`. Named by the kind of work, not the model — each preset's composition
 picks its own route, so retuning is a two-line edit.
 
-| Preset     | For                                                                      |
-| ---------- | ------------------------------------------------------------------------ |
-| `build`    | The main worker. Plans, edits, runs things, sees a change through.       |
-| `research` | Light and fast. Reads, searches, looks up docs.                          |
-| `verify`   | Checks work already done. Routed to a different model family on purpose. |
+| Preset     | For                                                                | Route              |
+| ---------- | ------------------------------------------------------------------ | ------------------ |
+| `build`    | The main worker. Plans, edits, runs things, sees a change through. | `qwen-token-plan`  |
+| `research` | Light and fast. Reads, searches, looks up docs.                    | `local-llm-router` |
+| `verify`   | Checks work already done. Routed independently of `build`.         | `qwen-token-plan`  |
+
+`build` and `verify` sit on a catalog route, so they work on a fresh clone.
+`research` is the local-router example and needs a server at
+`LOCAL_LLM_BASE_URL`; repoint it in `.dsh/presets/research/agent.cordis.yml` if
+you do not run one.
 
 They live in `.dsh/presets/<id>/`: `agent.cordis.yml` is the per-session
 composition, `preset.yml` the display name and description, and the directory

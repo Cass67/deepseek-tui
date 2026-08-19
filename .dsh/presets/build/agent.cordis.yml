@@ -1,6 +1,9 @@
 # build -- the default worker.
+#
+# On a catalog route so a fresh clone works with no local server running. Point
+# it at `local-llm-router` (see `research`) if you have one.
 - id: preset-model
   name: "@deepseek-ai/dsh-agent-default-model"
   config:
-    provider: local-llm-router
-    model: router
+    provider: qwen-token-plan
+    model: qwen3.8-max-preview

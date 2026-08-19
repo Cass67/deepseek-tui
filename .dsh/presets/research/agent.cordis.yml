@@ -1,7 +1,9 @@
 # research -- the cheap lookup agent.
 #
-# Name the agent by the KIND OF WORK; the route below is the knob. Point this
-# at whichever model is cheapest/fastest for you and the rest still holds.
+# Name the agent by the KIND OF WORK; the route below is the knob. This one is
+# the local-router example: it needs an OpenAI-compatible server at
+# LOCAL_LLM_BASE_URL (default http://localhost:3200/v1). Repoint it at any
+# catalog route if you do not run one.
 - id: preset-model
   name: "@deepseek-ai/dsh-agent-default-model"
   config:
