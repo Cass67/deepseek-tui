@@ -2,6 +2,22 @@
 
 Interactive OpenTUI client for DeepSeek Harness. It launches the sibling Harness runtime over stdio JSON-RPC and uses Qwen Token Plan by default.
 
+## Requirements
+
+Every dependency except `react` and `@opentui/*` is a `link:` into a sibling
+`../deepseek-harness` checkout, so the code you run is whatever sits in that
+working tree — there is no version to pin.
+
+That checkout must contain the L2 runtime methods (`settings/get`,
+`settings/set`, `skills/list`, `agent-presets/list`). They are **not** in
+`0.1.0-rc.7`; use the `sdk-l2-protocol` branch of
+[Cass67/deepseek-harness](https://github.com/Cass67/deepseek-harness), or any
+branch containing `9501b8d857`. Without them the app still boots, but the
+settings overlay, skill picker, preset picker and last-model-restore fail at
+runtime.
+
+`node scripts/preflight.mjs` checks this and names what is missing.
+
 ## Run
 
 Requirements: Bun, Node.js, pnpm, `../deepseek-harness`, and a Qwen Token Plan credential.

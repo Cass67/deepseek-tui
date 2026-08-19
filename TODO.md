@@ -1,3 +1,16 @@
+## Harness requirement
+
+This TUI needs a harness containing the L2 runtime methods (`settings/get`,
+`settings/set`, `skills/list`, `agent-presets/list`). They are NOT in
+`0.1.0-rc.7`. Point `../deepseek-harness` at `sdk-l2-protocol` (or any branch
+containing `9501b8d857`) from github.com/Cass67/deepseek-harness, or the
+settings overlay, skill picker, preset picker and last-model-restore all fail
+at runtime while the app still boots.
+
+Every dependency is a `link:` into that sibling checkout, so the resolved code
+is whatever is in its working tree — there is no version to pin. Check the
+branch before blaming this repo.
+
 # Progress Tracker
 
 ## Phase 1 — Core plugins + basic panels ✅
@@ -26,10 +39,20 @@
 - [x] Trajectory view (`Ctrl+E` — moved off `Ctrl+Y`, which the composer binds
       to paste)
 - [x] Deliverables panel (`Ctrl+O`)
-- [x] L2 protocol — **no harness work was needed**. `skills/list`,
-      `settings/get`, `settings/set` and `agent-presets/list` already ship in
-      `dsh-sdk-client` + `dsh-sdk-jsonrpc-server`; verified with
-      `scripts/l2-probe.mjs` and `scripts/settings-roundtrip.mjs`.
+- [x] L2 protocol — `skills/list`, `settings/get`, `settings/set` and
+      `agent-presets/list`, verified with `scripts/l2-probe.mjs` and
+      `scripts/settings-roundtrip.mjs`.
+
+      **Correction.** Earlier revisions of this file, and the commit message on
+      `9eaf9b1`, claimed no harness work was needed because these "already
+      ship" in `dsh-sdk-client` + `dsh-sdk-jsonrpc-server`. That was wrong.
+      They are NOT in harness `master` (`git show HEAD:packages/sdk/client/src/index.ts`
+      at rc.7 contains none of them). They had been added to the harness
+      working tree minutes earlier by an agent run, and were mistaken for
+      shipped functionality. They are now a real commit —
+      `9501b8d857 feat(sdk): L2 runtime methods for settings, skills and agent presets`
+      on the `sdk-l2-protocol` branch of github.com/Cass67/deepseek-harness.
+
 - [x] Event vocabulary swept. `src/events.test.ts` imports the harness's own
       `KNOWN_SESSION_EVENT_TYPES` and fails if a type is neither rendered in
       `trajectorySummary` nor listed in `UNSURFACED_EVENT_TYPES`.
