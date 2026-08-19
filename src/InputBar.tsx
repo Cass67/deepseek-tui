@@ -88,17 +88,21 @@ export function InputBar({
     setValue(textareaRef.current?.plainText ?? "");
   }, []);
 
-  const copySelection = useCallback(
+  const copyComposer = useCallback(
     (announce: boolean) => {
-      const selected = textareaRef.current?.getSelectedText() ?? "";
-      if (!selected) return;
+      const editor = textareaRef.current;
+      const selected = editor?.getSelectedText() ?? "";
+      const text = selected || (editor?.plainText ?? "");
+      if (!text) return;
       void clipboard
-        .writeText(selected, { destination: "best-available" })
+        .writeText(text, { destination: "best-available" })
         .then((result) => {
           if (!announce) return;
           onClipboardNotice(
             result.host.status === "written"
-              ? "Copied composer selection."
+              ? selected
+                ? "Copied composer selection."
+                : "Copied composer text."
               : "Composer copy could not be verified.",
           );
         })
@@ -200,17 +204,18 @@ export function InputBar({
       while (start > 0 && isWord(text[start - 1] ?? "")) start -= 1;
       while (end < text.length && isWord(text[end] ?? "")) end += 1;
       editor.setSelection(start, end);
-      copySelection(true);
+      copyComposer(true);
     },
-    [copySelection],
+    [copyComposer],
   );
 
   const handleKeyDown = useCallback(
     (event: KeyEvent) => {
       const commandModifier = event.super === true;
       const terminalSelectAll = event.ctrl && event.shift && event.name === "a";
+      // Cmd+C and Ctrl+Shift+C are handled globally in App so they also work
+      // for the chat window; here we keep the composer-only terminal chords.
       const terminalCopy =
-        (event.ctrl && event.shift && event.name === "c") ||
         (event.ctrl && !event.shift && event.name === "insert") ||
         (event.ctrl && !event.shift && event.name === "y");
       const terminalPaste =
@@ -223,10 +228,10 @@ export function InputBar({
         textareaRef.current?.selectAll();
         return;
       }
-      if ((commandModifier && event.name === "c") || terminalCopy) {
+      if (terminalCopy) {
         event.preventDefault();
         event.stopPropagation();
-        copySelection(true);
+        copyComposer(true);
         return;
       }
       if ((commandModifier && event.name === "v") || terminalPaste) {
@@ -249,7 +254,7 @@ export function InputBar({
       textareaRef.current?.gotoBufferEnd();
       setValue(completion);
     },
-    [copySelection, pasteClipboard, runtimeCommands, value],
+    [copyComposer, pasteClipboard, runtimeCommands, value],
   );
 
   return (

@@ -629,6 +629,32 @@ function AppBody({ themeName, onThemeChange }: AppBodyProps) {
     [clipboard, notify, state.currentStreamingText, state.messages],
   );
 
+  // Copy priority: terminal/chat selection, then composer selection, then the
+  // whole composer text. Returns undefined when there is nothing to copy.
+  const resolveCopyTarget = useCallback(():
+    | { text: string; label: string }
+    | undefined => {
+    const selected = renderer.getSelection()?.getSelectedText() ?? "";
+    if (selected) return { text: selected, label: "selection" };
+    const editor = renderer.currentFocusedEditor;
+    const composerSelection = editor?.getSelectedText() ?? "";
+    if (composerSelection)
+      return { text: composerSelection, label: "composer selection" };
+    const composerText = editor?.plainText ?? "";
+    if (composerText) return { text: composerText, label: "composer text" };
+    return undefined;
+  }, [renderer]);
+
+  const copyFromUi = useCallback(async (): Promise<boolean> => {
+    const target = resolveCopyTarget();
+    if (!target) return false;
+    const result = await clipboard.writeText(target.text, {
+      destination: "best-available",
+    });
+    notify(clipboardResultMessage(result, target.label));
+    return true;
+  }, [clipboard, notify, resolveCopyTarget]);
+
   const executeShell = useCallback(
     async (command: string) => {
       if (!command) {
@@ -950,7 +976,28 @@ function AppBody({ themeName, onThemeChange }: AppBodyProps) {
       setOverlay({ kind: "deliverables" });
       return;
     }
+    // Cmd+C (or terminal-style Ctrl+Shift+C): copy the selection, the
+    // composer, or the latest chat message. Global handlers fire before the
+    // focused composer, so this must live here, not in InputBar.
+    if (key.name === "c" && (key.super || (key.ctrl && key.shift))) {
+      key.preventDefault();
+      key.stopPropagation();
+      void copyFromUi()
+        .then((copied) => {
+          if (!copied) return copyTranscript("last");
+        })
+        .catch(reportError);
+      return;
+    }
     if (key.ctrl && !key.shift && !key.meta && !key.super && key.name === "c") {
+      // Copy when there is something to copy; only fall back to cancel/quit
+      // when there is not.
+      if (resolveCopyTarget()) {
+        key.preventDefault();
+        key.stopPropagation();
+        void copyFromUi().catch(reportError);
+        return;
+      }
       if (shellRunning) void cancelShell();
       else if (state.status === "running")
         void harness.cancel().catch(reportError);

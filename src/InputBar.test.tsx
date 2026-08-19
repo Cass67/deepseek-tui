@@ -123,6 +123,33 @@ test("double-click selects a composer word and copies it to host clipboard", asy
   }
 });
 
+test("composer copy falls back to full text when nothing is selected", async () => {
+  const writes: string[] = [];
+  const setup = await testRender(
+    <ThemeProvider name="tokyo-night">
+      <InputBar
+        onSubmit={() => {}}
+        clipboard={fakeClipboard("", writes)}
+        onClipboardNotice={() => {}}
+      />
+    </ThemeProvider>,
+    { width: 80, height: 24, kittyKeyboard: true },
+  );
+
+  try {
+    await act(async () => {
+      await setup.mockInput.typeText("hello world");
+      await setup.flush();
+      await setup.mockInput.pressKey("y", { ctrl: true });
+      await setup.flush();
+      await Promise.resolve();
+    });
+    assert.deepEqual(writes, ["hello world"]);
+  } finally {
+    await act(async () => setup.renderer.destroy());
+  }
+});
+
 test("terminal image drag attaches path instead of inserting it as prompt text", async () => {
   const paths: string[] = [];
   const submissions: string[] = [];
