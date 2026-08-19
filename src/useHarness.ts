@@ -125,10 +125,70 @@ export function trajectorySummary(
       return `  step ${String(data.step ?? "")}`;
     case "plan/mode":
       return `plan mode: ${data.active === true ? "on" : "off"}`;
+    case "command/run":
+      return `/${String(data.name ?? "command")}`;
+    case "command/done": {
+      const failed = data.ok === false;
+      return `/${String(data.name ?? "command")} ${failed ? "failed" : "done"}`;
+    }
+    case "approval/asked":
+      return `approval asked: ${truncateSummary(String(data.title ?? data.kind ?? ""), 80)}`;
+    case "approval/decided":
+      return `approval ${String(data.decision ?? "decided")}`;
+    case "compaction/summary":
+      return `compacted: ${truncateSummary(extractText(data.content) ?? "", 80)}`;
+    case "compaction/prune":
+      return `pruned ${String(data.prunedCount ?? "?")} tool result(s)`;
+    case "llm/retry-started":
+      return `llm retry ${String(data.attempt ?? "")}: ${truncateSummary(String(data.reason ?? ""), 60)}`;
+    case "session/title":
+      return `session titled: ${truncateSummary(String(data.title ?? ""), 60)}`;
+    case "sandbox/mode":
+      return `sandbox: ${String(data.mode ?? "?")}`;
+    case "permission/preset":
+      return `permission preset: ${String(data.preset ?? data.name ?? "?")}`;
+    case "schedule/change":
+      return `schedule ${String(data.action ?? "changed")}: ${truncateSummary(String(data.id ?? ""), 40)}`;
+    case "hook/invoked":
+      return `hook ${String(data.point ?? "")} invoked`;
+    case "hook/result": {
+      const blocked = data.blocked === true;
+      return `hook ${String(data.point ?? "")} ${blocked ? "blocked" : "ok"}`;
+    }
     default:
       return null;
   }
 }
+
+/**
+ * Session event types this UI deliberately does not surface in the trajectory.
+ *
+ * `events.test.ts` asserts this set plus the `trajectorySummary` switch covers
+ * every member of the harness's `KNOWN_SESSION_EVENT_TYPES`, so a harness
+ * upgrade that adds a type fails the suite instead of silently going unnoticed.
+ */
+export const UNSURFACED_EVENT_TYPES: ReadonlySet<string> = new Set([
+  // Per-token/lifecycle noise already reflected elsewhere in the UI.
+  "assistant/chunk",
+  "session/end-seed",
+  "step/end",
+  "compaction/start",
+  "compaction/end",
+  // Internal LLM plumbing, not user-facing.
+  "llm/retry",
+  "request/context",
+  "request/header",
+  "session/title-llm-request",
+  "web/deepseek-search-llm-request",
+  "agent/inbox/spliced",
+  "agent-preset/selected",
+  "subagent/descriptor",
+  "approval/policy",
+  // Code-mode sub-call plumbing: each pair is already visible as the tool
+  // call it dispatches, so logging both would double every entry.
+  "tool/code-dispatch",
+  "tool/code-dispatch-start",
+]);
 
 /** Describe current model/agent work from durable lifecycle events. */
 export function activityForEvent(
@@ -1750,7 +1810,9 @@ export function useHarness(options: UseHarnessOptions = {}): UseHarnessReturn {
   const listSkills = useCallback(async () => {
     const release = operationLockRef.current.acquire("list skills");
     try {
-      return await requireClient().listSkills();
+      // Skills are discovered from the workspace's project roots, so the
+      // active directory has to travel with the call; omitting it lists none.
+      return await requireClient().listSkills(workspaceDirectoryRef.current);
     } finally {
       release();
     }

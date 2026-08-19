@@ -18,68 +18,83 @@
 
 ## Phase 3 — Richer UI + L2 protocol ✅
 
-- [x] Goal panel (driven by `goal/change` events; `tool-goal` mounted)
-- [x] Workflow run view (driven by `tool-workflow/*` events; `tool-workflow` mounted)
-- [x] Settings overlay (Ctrl+S; model, reasoning, theme, session, shortcuts)
-- [x] Feedback tracking (`feedback/record` events → state)
-- [x] Message feedback UI (FeedbackPanel renders `feedback/record` entries)
-- [x] Skill picker (`SkillPicker` via `harness.listSkills`)
-- [x] Agent-preset picker (`harness.listAgentPresets`)
-- [x] Directory picker (`DirectoryPicker.tsx`, local state)
-- [x] Trajectory view (`TrajectoryPanel.tsx`, fed by `trajectorySummary`)
-- [x] Deliverables panel (`DeliverablesPanel.tsx`, fed by `deliverableForToolCall`)
-- [x] L2 protocol additions — **no harness work was needed**; these already ship
-      in `@deepseek-ai/dsh-sdk-client` + `dsh-sdk-jsonrpc-server`. Verified live
-      with `scripts/l2-probe.mjs`:
-  - [x] `skills/list` — returns `{"skills":[]}`
-  - [x] `settings/get` / `settings/set` — round-trip verified by
-        `scripts/settings-roundtrip.mjs` (revision advances, read-back matches)
-  - [x] `agent-presets/list` — returns `{"presets":[]}`
-  - [ ] `mcp/*` — not in this SDK build (`unknown ... runtime method`); Phase 4
-  - [ ] `lsp/status` — not in this SDK build; Phase 4
+- [x] Goal panel, workflow view, settings overlay, feedback tracking
+- [x] Skill picker (`Ctrl+K`) — `listSkills` now passes the workspace directory,
+      without which it always returned an empty list
+- [x] Agent-preset picker (`Ctrl+A`)
+- [x] Directory picker (`Ctrl+D`)
+- [x] Trajectory view (`Ctrl+E` — moved off `Ctrl+Y`, which the composer binds
+      to paste)
+- [x] Deliverables panel (`Ctrl+O`)
+- [x] L2 protocol — **no harness work was needed**. `skills/list`,
+      `settings/get`, `settings/set` and `agent-presets/list` already ship in
+      `dsh-sdk-client` + `dsh-sdk-jsonrpc-server`; verified with
+      `scripts/l2-probe.mjs` and `scripts/settings-roundtrip.mjs`.
+- [x] Event vocabulary swept. `src/events.test.ts` imports the harness's own
+      `KNOWN_SESSION_EVENT_TYPES` and fails if a type is neither rendered in
+      `trajectorySummary` nor listed in `UNSURFACED_EVENT_TYPES`.
 
-Note: `trajectory/list` and `deliverables/list` do not exist as L2 methods, so
-both panels are derived from the session event stream instead.
+`mcp/list` and `lsp/status` are NOT L2 methods in this SDK — the earlier TODO
+listed them speculatively. MCP and LSP are reachable as tools, not as L2 status
+calls. `trajectory/list` and `deliverables/list` likewise do not exist, so both
+panels derive from the session event stream.
 
-## Phase 4 — Power features (not started)
+## Phase 4 — Power features ✅
 
-- [ ] Sandbox (L1)
-- [ ] MCP client (L2)
-- [ ] LSP integration (L3)
-- [ ] PTY terminal
-- [ ] Schedule / cron
-- [ ] Code mode
-- [ ] Hooks
+All mounted and booting. `node scripts/boot-test.mjs` is the check.
 
-## Phase 5 — Parity sweep (not started)
+- [x] Sandbox — `dsh-sandbox-local` + `dsh-sandbox-policy`; `dsh-fs-sandbox` and
+      `dsh-bash-sandbox` REPLACE the local fs/bash backends rather than layering
+      over them. Default mode `workspace-write` (the plugin default is
+      `read-only`, which stops the agent writing at all).
+- [x] Permission presets — adds the `/permission` command. Requires a confining
+      `ctx.shell`, so it must load after the sandbox.
+- [x] PTY terminal — `dsh-terminal` + `dsh-terminal-bash` + `dsh-tool-terminal`.
+- [x] Schedule — `dsh-schedule`.
+- [x] LSP — `dsh-lsp` + `dsh-lsp-stdio` (typescript-language-server) +
+      `dsh-tool-lsp`.
+- [x] Hooks — `dsh-hooks-claude-code`, reading `<workspace>/.claude/settings.json`.
+      `dsh-hook-protocol` is types-only and must NOT be mounted as a plugin.
+- [x] Code mode — `dsh-code-runtime-worker-thread` registers `ctx.codeRuntime`;
+      the base `dsh-code-runtime` must not also be mounted.
+- [x] Session search — `dsh-tool-session-query`. The index was already mounted
+      but configured `openAt: never`, which refuses every search.
+- [ ] MCP — client installed, but it mounts once per server (`serverName` and
+      `command` are both required). `cordis.yml` has a commented template.
 
-- [ ] Cross-check `known-event-types.ts` (45 types)
-- [ ] Cross-check docs/tool-catalog.md
-- [ ] Update README / .env.example
-- [ ] Full E2E testing
+## Phase 5 — Parity sweep
+
+- [x] Cross-check `known-event-types.ts` — now a permanent test, not an audit.
+- [x] Cross-check `docs/tool-catalog.md` — 21/24 packages reachable, 43 tools.
+      Remaining 3 are deliberate: `pwsh` (Windows), `cordis_*` (in no shipped
+      tree), `tool-bash-persistent` (superseded by the terminal tools).
+- [x] Update README command/key tables and `.env.example`.
+- [ ] Full end-to-end against a live model: multi-turn with tools, subagent,
+      plan→execute, `/compact`, `/sessions` resume, clean shutdown.
 
 ## Verification status
 
-| Check                                              | Status                                        |
-| -------------------------------------------------- | --------------------------------------------- |
-| `tsc --noEmit`                                     | ✅ pass                                       |
-| `bun test` (39 tests)                              | ✅ pass                                       |
-| `bun build`                                        | ✅ pass                                       |
-| Boot test                                          | ✅ pass                                       |
-| L2 probe (`scripts/l2-probe.mjs`)                  | ✅ skills/settings/presets OK                 |
-| `settings/set` round-trip                          | ✅ verified                                   |
-| Live pty: goal panel                               | ✅ verified                                   |
-| Live pty: workflow panel                           | ✅ verified                                   |
-| Live pty: settings overlay                         | ✅ verified                                   |
-| Live pty: feedback panel                           | ⏳ blocked — localhost slot wedged on task 416391 |
-| Live pty: new panels (dir/trajectory/deliverables) | ⏳ blocked — same                             |
+| Check                                   | Status                                                 |
+| --------------------------------------- | ------------------------------------------------------ |
+| `tsc --noEmit`                          | ✅ pass                                                |
+| `bun test` (40 tests)                   | ✅ pass                                                |
+| `bun build`                             | ✅ pass                                                |
+| `scripts/boot-test.mjs`                 | ✅ pass — 4 commands (compact, goal, permission, plan) |
+| `scripts/l2-probe.mjs`                  | ✅ skills/settings/presets OK                          |
+| `scripts/settings-roundtrip.mjs`        | ✅ pass                                                |
+| `eslint src`                            | ✅ 0 errors (2 pre-existing warnings)                  |
+| `eslint scripts`                        | ⚠️ 17 pre-existing errors, unrelated to this work      |
+| Live pty: goal / workflow / settings    | ✅ verified earlier                                    |
+| Live pty: everything mounted in Phase 4 | ⏳ needs a working model                               |
 
 ## Known issues
 
-- `src/useHarness.ts` capped output at a hardcoded `16_384`, silently overriding
-  `maxTokens: 49152` on the `local-llm-router` route in `cordis.yml`. Long
-  reasoning turns died with `stopReason: "length"`. Now `DSH_MAX_TOKENS`.
-- `cordis.yml` sets `reasoning: xhigh` for `local-llm-router`, but the router
+- `src/useHarness.ts` capped output at a hardcoded `16_384`, overriding
+  `maxTokens: 49152` on the `local-llm-router` route. Now `DSH_MAX_TOKENS`.
+- `cordis.yml` sets `reasoning: xhigh` for `local-llm-router`, but that router
   only advertises `low`/`medium`/`high`.
 - `llama-server` on localhost runs `--parallel 1`, so one wedged request blocks
   every client until it clears.
+- 17 pre-existing eslint errors under `scripts/` (ANSI-escape regexes in the
+  pty tests, an unused import). They became visible only when the eslint config
+  was fixed to cover `.mjs` at all.

@@ -106,11 +106,36 @@
 - id: user-questions
   name: "@deepseek-ai/dsh-user-questions"
 
+# Named sandbox+approval bundles the user can switch between, instead of
+# answering every approval one at a time. Needs a confining ctx.shell, so it
+# must load after the sandbox stack.
+- id: permission-presets
+  name: "@deepseek-ai/dsh-permission-presets"
+
 - id: subprocess
   name: "@deepseek-ai/dsh-subprocess-local"
 
+# ── Sandbox: confine what the shell and filesystem tools may touch ───────────
+# Order matters: the sandbox service and its provider must resolve before the
+# executor that injects them.
+
+# Local runner: seatbelt (sandbox-exec) on macOS, bwrap/landlock on Linux.
+# An empty runnerCommand lets the provider probe and pick per platform.
+- id: sandbox-local
+  name: "@deepseek-ai/dsh-sandbox-local"
+
+# Deployment default. The plugin's own default is read-only, which would stop
+# the agent writing at all; workspace-write matches the reference preset.
+- id: sandbox-policy
+  name: "@deepseek-ai/dsh-sandbox-policy"
+  config:
+    mode: workspace-write
+    workspaceRoot: !!js process.env.DSH_CWD ?? process.cwd()
+
+# Confining executor. Registers as ctx.shell IN PLACE OF dsh-bash-local, whose
+# Config it inherits verbatim — the tool layer above is unchanged.
 - id: bash
-  name: "@deepseek-ai/dsh-bash-local"
+  name: "@deepseek-ai/dsh-bash-sandbox"
   config:
     cwd: !!js process.env.DSH_CWD ?? process.cwd()
     timeoutMs: 120000
@@ -144,17 +169,26 @@
 - id: session-checkpoints
   name: "@deepseek-ai/dsh-session-checkpoint-policy"
 
+# Session index. A real file (not :memory:) so history survives a restart, and
+# opened lazily so the cost lands on the first search rather than every boot.
 - id: session-query
   name: "@deepseek-ai/dsh-session-query-sqlite"
   config:
-    path: ":memory:"
-    openAt: never
+    path: .sessions/session-index.sqlite
+    openAt: first-search
+
+# The five read-only tools over that index. Without this row the index exists
+# but nothing can query it.
+- id: tool-session-query
+  name: "@deepseek-ai/dsh-tool-session-query"
 
 - id: tool-ask-user
   name: "@deepseek-ai/dsh-tool-ask-user"
 
+# Sandbox-enforcing filesystem backend. Registers as ctx.fs IN PLACE OF
+# dsh-fs-local, whose Config it inherits; the model-facing tools are untouched.
 - id: fs-local
-  name: "@deepseek-ai/dsh-fs-local"
+  name: "@deepseek-ai/dsh-fs-sandbox"
   config:
     cwd: !!js process.env.DSH_CWD ?? process.cwd()
 
@@ -264,6 +298,76 @@
 
 - id: llm-deepseek
   name: "@deepseek-ai/dsh-llm-deepseek"
+
+# ── Schedule: deferred and repeating runs ────────────────────────────────────
+- id: schedule
+  name: "@deepseek-ai/dsh-schedule"
+
+# ── LSP: language-server queries over ctx.lsp ────────────────────────────────
+# The tool's schema is provider-independent; without a registered provider a
+# query returns LSP_UNAVAILABLE rather than failing to load.
+- id: lsp
+  name: "@deepseek-ai/dsh-lsp"
+
+- id: lsp-stdio
+  name: "@deepseek-ai/dsh-lsp-stdio"
+  config:
+    servers:
+      typescript:
+        command: typescript-language-server
+        args: ["--stdio"]
+        extensionToLanguage:
+          .ts: typescript
+          .tsx: typescriptreact
+          .mts: typescript
+          .cts: typescript
+          .js: javascript
+          .jsx: javascriptreact
+          .mjs: javascript
+
+- id: tool-lsp
+  name: "@deepseek-ai/dsh-tool-lsp"
+
+# ── Hooks: lifecycle shell-outs ──────────────────────────────────────────────
+# Reads Claude-Code-format hooks from the workspace. A missing file simply
+# registers no handlers, so this is safe to mount unconditionally.
+- id: hooks-claude-code
+  name: "@deepseek-ai/dsh-hooks-claude-code"
+  config:
+    configPath: !!js ((process.env.DSH_CWD ?? process.cwd()) + '/.claude/settings.json')
+    projectDir: !!js process.env.DSH_CWD ?? process.cwd()
+
+# ── Code mode: the model writes a program that calls tools as bindings ───────
+# The worker-thread runtime registers ctx.codeRuntime itself; the base package
+# is types-only from the composition's point of view.
+- id: code-runtime-worker-thread
+  name: "@deepseek-ai/dsh-code-runtime-worker-thread"
+
+# ── MCP: third-party servers contributing tools ──────────────────────────────
+# Mounted once PER SERVER: serverName and command are both required, so there
+# is nothing sensible to mount by default. Copy this row per server:
+#
+# - id: mcp-<name>
+#   name: "@deepseek-ai/dsh-mcp-client"
+#   config:
+#     transport: stdio
+#     serverName: <name>
+#     command: <executable>
+#     args: []
+
+# ── Terminal: persistent PTY sessions ────────────────────────────────────────
+# Long-lived shells the model opens, reads from and sends to, as opposed to the
+# one-shot `bash` tool. terminal-bash confines each PTY with the same
+# sandboxPolicy as the shell, so it must load after the sandbox stack.
+
+- id: terminals
+  name: "@deepseek-ai/dsh-terminal"
+
+- id: terminal-bash
+  name: "@deepseek-ai/dsh-terminal-bash"
+
+- id: tool-terminal
+  name: "@deepseek-ai/dsh-tool-terminal"
 
 # ── Phase 2: subagents, background jobs, web, ralph ──────────────────────────
 

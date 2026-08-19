@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import type {
   ChatMessage,
@@ -9,7 +10,9 @@ import type {
   SubagentInfo,
   WorkflowRun,
 } from "./types.ts";
+import { KNOWN_SESSION_EVENT_TYPES } from "@deepseek-ai/dsh-session";
 import {
+  UNSURFACED_EVENT_TYPES,
   activityForEvent,
   deliverableForToolCall,
   processEvent,
@@ -505,4 +508,36 @@ test("summarises events for the trajectory log", () => {
 
   // Events with no data, and per-token deltas, are not logged.
   assert.equal(trajectorySummary({ type: "assistant/chunk" }, names), null);
+});
+
+// Guards the Phase 5 parity sweep: every event type this harness build can emit
+// is either rendered in the trajectory or explicitly listed as unsurfaced. A
+// harness upgrade that adds a type fails here instead of being silently dropped.
+test("every known session event type is surfaced or explicitly ignored", () => {
+  const source = readFileSync(
+    new URL("./useHarness.ts", import.meta.url),
+    "utf8",
+  );
+  const rendered = new Set(
+    [...source.matchAll(/case "([a-z-]+\/[a-z/-]+)":/g)].map((m) => m[1]),
+  );
+
+  const unaccounted = [...KNOWN_SESSION_EVENT_TYPES].filter(
+    (type) => !rendered.has(type) && !UNSURFACED_EVENT_TYPES.has(type),
+  );
+  assert.deepEqual(
+    unaccounted,
+    [],
+    `event types neither rendered nor listed in UNSURFACED_EVENT_TYPES: ${unaccounted.join(", ")}`,
+  );
+
+  // The ignore list must not drift: every entry has to still be a real type.
+  const stale = [...UNSURFACED_EVENT_TYPES].filter(
+    (type) => !KNOWN_SESSION_EVENT_TYPES.has(type),
+  );
+  assert.deepEqual(
+    stale,
+    [],
+    `UNSURFACED_EVENT_TYPES lists unknown types: ${stale.join(", ")}`,
+  );
 });

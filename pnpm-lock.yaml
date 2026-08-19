@@ -25,6 +25,15 @@ importers:
       "@deepseek-ai/dsh-bash-local":
         specifier: link:../deepseek-harness/packages/shell/bash-local
         version: link:../deepseek-harness/packages/shell/bash-local
+      "@deepseek-ai/dsh-bash-sandbox":
+        specifier: link:../deepseek-harness/packages/shell/bash-sandbox
+        version: link:../deepseek-harness/packages/shell/bash-sandbox
+      "@deepseek-ai/dsh-code-runtime":
+        specifier: link:../deepseek-harness/packages/code-runtime/code-runtime
+        version: link:../deepseek-harness/packages/code-runtime/code-runtime
+      "@deepseek-ai/dsh-code-runtime-worker-thread":
+        specifier: link:../deepseek-harness/packages/code-runtime/code-runtime-worker-thread
+        version: link:../deepseek-harness/packages/code-runtime/code-runtime-worker-thread
       "@deepseek-ai/dsh-command-compact":
         specifier: link:../deepseek-harness/packages/compaction/command-compact
         version: link:../deepseek-harness/packages/compaction/command-compact
@@ -49,6 +58,15 @@ importers:
       "@deepseek-ai/dsh-fs-observation-policy":
         specifier: link:../deepseek-harness/packages/fs/fs-observation-policy
         version: link:../deepseek-harness/packages/fs/fs-observation-policy
+      "@deepseek-ai/dsh-fs-sandbox":
+        specifier: link:../deepseek-harness/packages/fs/fs-sandbox
+        version: link:../deepseek-harness/packages/fs/fs-sandbox
+      "@deepseek-ai/dsh-hook-protocol":
+        specifier: link:../deepseek-harness/packages/hooks/hook-protocol
+        version: link:../deepseek-harness/packages/hooks/hook-protocol
+      "@deepseek-ai/dsh-hooks-claude-code":
+        specifier: link:../deepseek-harness/packages/hooks/hooks-claude-code
+        version: link:../deepseek-harness/packages/hooks/hooks-claude-code
       "@deepseek-ai/dsh-invariants":
         specifier: link:../deepseek-harness/packages/runtime-diagnostics/invariants
         version: link:../deepseek-harness/packages/runtime-diagnostics/invariants
@@ -64,12 +82,36 @@ importers:
       "@deepseek-ai/dsh-llm-pi-ai":
         specifier: link:../deepseek-harness/packages/llm/llm-pi-ai
         version: link:../deepseek-harness/packages/llm/llm-pi-ai
+      "@deepseek-ai/dsh-lsp":
+        specifier: link:../deepseek-harness/packages/lsp/lsp
+        version: link:../deepseek-harness/packages/lsp/lsp
+      "@deepseek-ai/dsh-lsp-stdio":
+        specifier: link:../deepseek-harness/packages/lsp/lsp-stdio
+        version: link:../deepseek-harness/packages/lsp/lsp-stdio
+      "@deepseek-ai/dsh-mcp-client":
+        specifier: link:../deepseek-harness/packages/mcp/mcp-client
+        version: link:../deepseek-harness/packages/mcp/mcp-client
+      "@deepseek-ai/dsh-permission-presets":
+        specifier: link:../deepseek-harness/packages/interaction/permission-presets
+        version: link:../deepseek-harness/packages/interaction/permission-presets
       "@deepseek-ai/dsh-plan-mode":
         specifier: link:../deepseek-harness/packages/plan/plan-mode
         version: link:../deepseek-harness/packages/plan/plan-mode
       "@deepseek-ai/dsh-repeat-tool-reminder":
         specifier: link:../deepseek-harness/packages/guard/repeat-tool-reminder
         version: link:../deepseek-harness/packages/guard/repeat-tool-reminder
+      "@deepseek-ai/dsh-sandbox":
+        specifier: link:../deepseek-harness/packages/sandbox/sandbox
+        version: link:../deepseek-harness/packages/sandbox/sandbox
+      "@deepseek-ai/dsh-sandbox-local":
+        specifier: link:../deepseek-harness/packages/sandbox/sandbox-local
+        version: link:../deepseek-harness/packages/sandbox/sandbox-local
+      "@deepseek-ai/dsh-sandbox-policy":
+        specifier: link:../deepseek-harness/packages/sandbox/sandbox-policy
+        version: link:../deepseek-harness/packages/sandbox/sandbox-policy
+      "@deepseek-ai/dsh-schedule":
+        specifier: link:../deepseek-harness/packages/schedule/schedule
+        version: link:../deepseek-harness/packages/schedule/schedule
       "@deepseek-ai/dsh-sdk-client":
         specifier: link:../deepseek-harness/packages/sdk/client
         version: link:../deepseek-harness/packages/sdk/client
@@ -121,6 +163,12 @@ importers:
       "@deepseek-ai/dsh-subprocess-local":
         specifier: link:../deepseek-harness/packages/subprocess/subprocess-local
         version: link:../deepseek-harness/packages/subprocess/subprocess-local
+      "@deepseek-ai/dsh-terminal":
+        specifier: link:../deepseek-harness/packages/terminal/terminal
+        version: link:../deepseek-harness/packages/terminal/terminal
+      "@deepseek-ai/dsh-terminal-bash":
+        specifier: link:../deepseek-harness/packages/terminal/terminal-bash
+        version: link:../deepseek-harness/packages/terminal/terminal-bash
       "@deepseek-ai/dsh-token-meter":
         specifier: link:../deepseek-harness/packages/llm/token-meter
         version: link:../deepseek-harness/packages/llm/token-meter
@@ -142,9 +190,15 @@ importers:
       "@deepseek-ai/dsh-tool-jobs":
         specifier: link:../deepseek-harness/packages/jobs/tool-jobs
         version: link:../deepseek-harness/packages/jobs/tool-jobs
+      "@deepseek-ai/dsh-tool-lsp":
+        specifier: link:../deepseek-harness/packages/lsp/tool-lsp
+        version: link:../deepseek-harness/packages/lsp/tool-lsp
       "@deepseek-ai/dsh-tool-ralph":
         specifier: link:../deepseek-harness/packages/workflow/tool-ralph
         version: link:../deepseek-harness/packages/workflow/tool-ralph
+      "@deepseek-ai/dsh-tool-session-query":
+        specifier: link:../deepseek-harness/packages/session-query/tool-session-query
+        version: link:../deepseek-harness/packages/session-query/tool-session-query
       "@deepseek-ai/dsh-tool-str-replace-editor":
         specifier: link:../deepseek-harness/packages/fs/tool-str-replace-editor
         version: link:../deepseek-harness/packages/fs/tool-str-replace-editor
@@ -157,6 +211,9 @@ importers:
       "@deepseek-ai/dsh-tool-subagent-report":
         specifier: link:../deepseek-harness/packages/subagent/tool-subagent-report
         version: link:../deepseek-harness/packages/subagent/tool-subagent-report
+      "@deepseek-ai/dsh-tool-terminal":
+        specifier: link:../deepseek-harness/packages/terminal/tool-terminal
+        version: link:../deepseek-harness/packages/terminal/tool-terminal
       "@deepseek-ai/dsh-tool-todo":
         specifier: link:../deepseek-harness/packages/todo/tool-todo
         version: link:../deepseek-harness/packages/todo/tool-todo

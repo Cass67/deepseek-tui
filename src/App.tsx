@@ -916,7 +916,8 @@ function AppBody({ themeName, onThemeChange }: AppBodyProps) {
       setOverlay({ kind: "directory" });
       return;
     }
-    if (key.ctrl && key.name === "y") {
+    // Ctrl+E, not Ctrl+Y: the composer already binds Ctrl+Y to paste.
+    if (key.ctrl && key.name === "e") {
       setOverlay({ kind: "trajectory" });
       return;
     }

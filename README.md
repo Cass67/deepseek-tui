@@ -60,6 +60,7 @@ A catalog route can be overridden with only changed fields; omit `models` to ret
 | `/copy [last\|all]`       | Copy latest user/assistant message or full conversation transcript, including current streamed text. |
 | `/shell <command>`        | Run one owned, bounded local shell process group outside model history.                              |
 | `/theme [name]`           | Open the 23-theme picker or select and remember an exact theme id.                                   |
+| `/permission`             | Switch the sandbox + approval preset (runtime-discovered from the harness).                          |
 | `/help`                   | Show local and runtime-discovered commands.                                                          |
 | `/quit`                   | Shut down the Harness runtime and exit.                                                              |
 
@@ -83,6 +84,12 @@ Built-in themes: Tokyo Night, Dracula, Nord, Catppuccin Mocha/Latte, Gruvbox Dar
 - `Ctrl+L`: fuzzy model picker across authenticated providers
 - `Ctrl+P`: provider picker
 - `Ctrl+T`: reasoning-level picker for current model
+- `Ctrl+S`: settings overlay (model, reasoning, theme, session, shortcuts)
+- `Ctrl+K`: skill picker
+- `Ctrl+A`: agent-preset picker
+- `Ctrl+D`: working-directory picker
+- `Ctrl+E`: trajectory (session event timeline)
+- `Ctrl+O`: deliverables (files written, commands run)
 - `Ctrl+C`: cancel active shell or model turn; otherwise quit
 
 ## Sessions, interactions, and images
@@ -92,3 +99,43 @@ Persisted sessions remain under `<workspace>/.sessions`. `/sessions` reads them 
 Harness approval and question requests preempt ordinary overlays. Approval defaults to rejection, `Esc` rejects or cancels, and question batches accept option labels or numbers, comma-separated multi-select values, and custom text. Shutdown rejects or cancels pending requests before closing the runtime. The default local bash executor does not request approval for ordinary commands; the approval modal activates when a composed Harness consumer raises an approval request.
 
 `/attach` accepts only regular files contained in the caller workspace. Dragging one PNG, JPEG, WebP, or GIF into the composer recognizes the terminal-pasted absolute path and explicitly admits that external image. Both paths reject symlinks, query deployment image limits, then read at most `maxImageBytes + 1` through one file handle. Only a basename and durable attachment reference enter UI/model history; local paths and base64 never do. The selected catalog model must advertise image input. Attachment admission and prompt admission are serialized. Enter during an active turn snapshots queued images into that follow-up, clears them from the composer, and dispatches queued prompts FIFO after each turn becomes idle. Composer input remains enabled during model work without resetting the active stream. The runtime verifies declared media type and image bytes through its durable attachment service.
+
+## Harness capabilities
+
+The composition is `cordis.yml` layered over the plugins
+`@deepseek-ai/dsh-agent-spine-demo` mounts. Together they expose 43 model-facing
+tools — 21 of the 24 packages in the harness's generated `docs/tool-catalog.md`:
+
+| Capability | Tools                                                                                                   |
+| ---------- | ------------------------------------------------------------------------------------------------------- |
+| Files      | `read`, `write`, `edit`, `read_image`, `str_replace_editor`, `glob`, `grep`                             |
+| Shell      | `bash` (sandbox-confined, background runs become jobs)                                                  |
+| Terminal   | `terminal_open`, `terminal_read`, `terminal_send`, `terminal_close`, `terminal_list`, `terminal_signal` |
+| Jobs       | `job_list`, `job_output`, `job_kill`                                                                    |
+| Subagents  | `subagent`, `subagent_fork`, `send_message`, `interrupt_agent`, `list_agents`, `report`                 |
+| Planning   | `exit_plan_mode`, `create_goal`, `get_goal`, `update_goal`, `todo_write`                                |
+| Workflow   | `workflow`, `ralph`                                                                                     |
+| Web        | `web_search`, `web_fetch`                                                                               |
+| Sessions   | `session_search`, `session_trace`, `session_event_read`, `session_event_search`, `session_event_trace`  |
+| Schedule   | `schedule_create`, `schedule_list`, `schedule_delete`                                                   |
+| Code       | `lsp`, `run_code`                                                                                       |
+| Skills     | `skill`                                                                                                 |
+| Ask        | `ask_user_question`                                                                                     |
+
+Deliberately absent: `pwsh` (Windows-only), `cordis_*` (ships in no tree by
+design), and `dsh-tool-bash-persistent` (superseded by the terminal tools).
+
+**Sandbox.** `dsh-fs-sandbox` and `dsh-bash-sandbox` replace the plain local
+backends, so writes and commands are confined by `ctx.sandboxPolicy`. The
+default mode is `workspace-write`; `/permission` switches presets.
+
+**MCP.** `@deepseek-ai/dsh-mcp-client` is installed but mounts once per server,
+since `serverName` and `command` are both required. `cordis.yml` carries a
+commented template — copy it per server.
+
+**Skills.** Project skills are read from `.dsh/skills/<name>/SKILL.md`
+(`name` + `description` frontmatter required). This repo ships
+`mount-harness-plugin`.
+
+**Hooks.** Claude-Code-format hooks are read from
+`<workspace>/.claude/settings.json`. A missing file registers no handlers.
