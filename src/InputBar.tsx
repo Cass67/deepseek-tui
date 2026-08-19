@@ -253,88 +253,90 @@ export function InputBar({
   );
 
   return (
-    <box
-      visible={visible}
-      style={{
-        flexDirection: "column",
-        width: "100%",
-        height:
-          suggestions.length > 0
-            ? 4 +
-              composerHeight +
-              suggestionRows +
-              suggestionFooterRows +
-              suggestionPadding +
-              Number(queuedPromptCount > 0) +
-              Number(attachments.length > 0)
-            : undefined,
-        border: true,
-        borderStyle: "rounded",
-        borderColor: disabled ? theme.border : theme.primary,
-        paddingX: 1,
-        paddingY: 1,
-      }}
-    >
+    // The queue notice sits OUTSIDE the bordered composer: inside, it shares a
+    // row with what you are typing and overlaps it.
+    <box visible={visible} style={{ flexDirection: "column", width: "100%" }}>
       {queuedPromptCount > 0 && (
-        <text key="queued-prompts" fg={theme.warning}>
+        <text key="queued-prompts" fg={theme.warning} style={{ paddingX: 1 }}>
           ◌ {queuedPromptCount} queued
         </text>
       )}
-      {attachments.length > 0 && (
-        <text key="attachments" fg={theme.secondary}>
-          {dimensions.width < 60
-            ? `▣ ${attachments.length} image${attachments.length === 1 ? "" : "s"}`
-            : attachments
-                .map(
-                  (attachment) =>
-                    `▣ ${attachment.name ?? "image"} (${attachment.width}×${attachment.height})`,
-                )
-                .join("  ")}
-        </text>
-      )}
-      {suggestions.length > 0 && (
-        <box
-          key="command-suggestions"
-          style={{ width: "100%", paddingBottom: suggestionPadding }}
-        >
-          <text fg={theme.textMuted}>
-            {formattedSuggestions}
-            {suggestionFooterRows > 0 ? "\nTab completes first match" : ""}
+      <box
+        style={{
+          flexDirection: "column",
+          width: "100%",
+          height:
+            suggestions.length > 0
+              ? 4 +
+                composerHeight +
+                suggestionRows +
+                suggestionFooterRows +
+                suggestionPadding +
+                Number(attachments.length > 0)
+              : undefined,
+          border: true,
+          borderStyle: "rounded",
+          borderColor: disabled ? theme.border : theme.primary,
+          paddingX: 1,
+          paddingY: 1,
+        }}
+      >
+        {attachments.length > 0 && (
+          <text key="attachments" fg={theme.secondary}>
+            {dimensions.width < 60
+              ? `▣ ${attachments.length} image${attachments.length === 1 ? "" : "s"}`
+              : attachments
+                  .map(
+                    (attachment) =>
+                      `▣ ${attachment.name ?? "image"} (${attachment.width}×${attachment.height})`,
+                  )
+                  .join("  ")}
           </text>
-        </box>
-      )}
-      <textarea
-        key="composer-textarea"
-        ref={textareaRef}
-        placeholder={
-          disabled
-            ? (placeholder ?? "input unavailable...")
-            : (placeholder ??
-              "type a message... (Enter to send, Shift+Enter for newline)")
-        }
-        width="100%"
-        height={composerHeight}
-        backgroundColor={theme.background}
-        focusedBackgroundColor={theme.background}
-        textColor={theme.text}
-        cursorColor={theme.primary}
-        placeholderColor={theme.textMuted}
-        wrapMode="word"
-        focused={focused && !disabled}
-        onContentChange={handleContentChange}
-        onKeyDown={handleKeyDown}
-        onMouseDown={handleMouseDown}
-        onPaste={handlePaste}
-        onSubmit={handleSubmit}
-        keyBindings={[
-          { name: "return", action: "submit" },
-          { name: "kpenter", action: "submit" },
-          { name: "linefeed", action: "submit" },
-          { name: "return", shift: true, action: "newline" },
-          { name: "kpenter", shift: true, action: "newline" },
-          { name: "linefeed", shift: true, action: "newline" },
-        ]}
-      />
+        )}
+        {suggestions.length > 0 && (
+          <box
+            key="command-suggestions"
+            style={{ width: "100%", paddingBottom: suggestionPadding }}
+          >
+            <text fg={theme.textMuted}>
+              {formattedSuggestions}
+              {suggestionFooterRows > 0 ? "\nTab completes first match" : ""}
+            </text>
+          </box>
+        )}
+        <textarea
+          key="composer-textarea"
+          ref={textareaRef}
+          placeholder={
+            disabled
+              ? (placeholder ?? "input unavailable...")
+              : (placeholder ??
+                "type a message... (Enter to send, Shift+Enter for newline)")
+          }
+          width="100%"
+          height={composerHeight}
+          backgroundColor={theme.background}
+          focusedBackgroundColor={theme.background}
+          textColor={theme.text}
+          cursorColor={theme.primary}
+          placeholderColor={theme.textMuted}
+          wrapMode="word"
+          focused={focused && !disabled}
+          onContentChange={handleContentChange}
+          onKeyDown={handleKeyDown}
+          onMouseDown={handleMouseDown}
+          onPaste={handlePaste}
+          onSubmit={handleSubmit}
+          keyBindings={[
+            { name: "return", action: "submit" },
+            { name: "kpenter", action: "submit" },
+            { name: "linefeed", action: "submit" },
+            { name: "return", shift: true, action: "newline" },
+            { name: "kpenter", shift: true, action: "newline" },
+            { name: "linefeed", shift: true, action: "newline" },
+          ]}
+        />
+      </box>
     </box>
   );
 }
