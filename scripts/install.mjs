@@ -21,9 +21,13 @@ const HARNESS =
 const REPO =
   process.env.DSH_HARNESS_REPO ??
   "https://github.com/Cass67/deepseek-harness.git";
-const BRANCH = process.env.DSH_HARNESS_BRANCH ?? "main";
+/**
+ * A TAG, not a branch: a branch keeps moving, so two people running this on
+ * different days would get different harness code with nothing to point at.
+ */
+const REF = process.env.DSH_HARNESS_REF ?? "v0.1.0-l2";
 /** The commit that adds the L2 runtime methods this client calls. */
-const REQUIRED_COMMIT = "9501b8d857";
+const REQUIRED_COMMIT = "f5afaacf40";
 const CHECK_ONLY = process.argv.includes("--check");
 
 let step = 0;
@@ -49,8 +53,8 @@ if (!existsSync(HARNESS)) {
     console.error(`    MISSING — run without --check to clone ${REPO}`);
     process.exit(1);
   }
-  console.log(`    cloning ${REPO} (branch ${BRANCH})`);
-  run("git", ["clone", "--branch", BRANCH, REPO, HARNESS], APP_ROOT);
+  console.log(`    cloning ${REPO} at ${REF}`);
+  run("git", ["clone", "--branch", REF, REPO, HARNESS], APP_ROOT);
 } else {
   ok("present");
 }
@@ -72,7 +76,7 @@ if (!hasCommit) {
       `    Without it, settings/get, settings/set, skills/list and agent-presets/list\n` +
       `    do not exist: the TUI boots and then fails on the settings overlay, both\n` +
       `    pickers and last-model-restore.\n\n` +
-      `    Fix with:  git -C ${HARNESS} fetch ${REPO} ${BRANCH} && git -C ${HARNESS} checkout ${BRANCH}`,
+      `    Fix with:  git -C ${HARNESS} fetch ${REPO} --tags && git -C ${HARNESS} checkout ${REF}`,
   );
   process.exit(1);
 }

@@ -7,9 +7,8 @@ A terminal client for the [DeepSeek Harness](https://github.com/deepseek-ai/deep
 > The TUI calls L2 runtime methods — `settings/get`, `settings/set`,
 > `skills/list`, `agent-presets/list` — that are **not in upstream
 > `deepseek-ai/deepseek-harness`** and not in release `0.1.0-rc.7`. They live on
-> the `main` branch of
-> **[Cass67/deepseek-harness](https://github.com/Cass67/deepseek-harness)**
-> (commit `9501b8d857`).
+> the **`v0.1.0-l2`** tag of
+> **[Cass67/deepseek-harness](https://github.com/Cass67/deepseek-harness)**.
 >
 > Against upstream, the app **boots normally and then fails** the moment
 > anything reads settings: the settings overlay, the skill and agent-preset
@@ -52,10 +51,10 @@ node scripts/install.mjs --check   # report only, change nothing
 node scripts/preflight.mjs         # do the L2 methods actually respond?
 ```
 
-| Variable                                  | Effect                                                      |
-| ----------------------------------------- | ----------------------------------------------------------- |
-| `DSH_HARNESS_PATH`                        | Where the harness lives. Defaults to `../deepseek-harness`. |
-| `DSH_HARNESS_REPO` / `DSH_HARNESS_BRANCH` | Clone source. Defaults to the fork and `main`.              |
+| Variable                               | Effect                                                      |
+| -------------------------------------- | ----------------------------------------------------------- |
+| `DSH_HARNESS_PATH`                     | Where the harness lives. Defaults to `../deepseek-harness`. |
+| `DSH_HARNESS_REPO` / `DSH_HARNESS_REF` | Clone source. Defaults to the fork and the `v0.1.0-l2` tag. |
 
 ## Run
 

@@ -67,8 +67,8 @@ console.error("preflight FAILED — the linked harness is missing:\n");
 for (const [method, breaks] of missing)
   console.error(`  ${method.padEnd(20)} breaks: ${breaks}`);
 console.error(
-  "\nThese are not in harness 0.1.0-rc.7. Check out a branch containing" +
-    "\n9501b8d857 (main on github.com/Cass67/deepseek-harness)" +
+  "\nThese are not in harness 0.1.0-rc.7. Check out a revision containing" +
+    "\nthe v0.1.0-l2 tag on github.com/Cass67/deepseek-harness)" +
     "\nin ../deepseek-harness, then re-run.",
 );
 process.exit(1);
