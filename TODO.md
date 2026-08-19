@@ -91,8 +91,11 @@ All mounted and booting. `node scripts/boot-test.mjs` is the check.
 
 - `src/useHarness.ts` capped output at a hardcoded `16_384`, overriding
   `maxTokens: 49152` on the `local-llm-router` route. Now `DSH_MAX_TOKENS`.
-- `cordis.yml` sets `reasoning: xhigh` for `local-llm-router`, but that router
-  only advertises `low`/`medium`/`high`.
+- `local-llm-router` runs at `reasoning: xhigh` by design — the served template
+  accepts exactly `low`/`medium`/`xhigh` and defaults to `xhigh`, which is why
+  the route maps `high` → `xhigh`. It is NOT a misconfiguration. It does mean
+  long reasoning turns are the norm, so set `DSH_MAX_TOKENS=49152` (the route's
+  declared ceiling) when using it, or turns die at the 16384 default.
 - `llama-server` on localhost runs `--parallel 1`, so one wedged request blocks
   every client until it clears.
 - 17 pre-existing eslint errors under `scripts/` (ANSI-escape regexes in the

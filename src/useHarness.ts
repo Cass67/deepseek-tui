@@ -854,6 +854,75 @@ export function replayHistory(events: readonly SessionHistoryEvent[]): {
   };
 }
 
+/** Settings namespace holding the route a new session starts on. */
+const DEFAULT_ROUTE_NS = "agent-default-model";
+
+/**
+ * Settings namespaces register asynchronously after `initialize` resolves --
+ * measured at 0 present immediately, all 7 by ~100ms. Reading once would
+ * intermittently see none and silently skip the restore, which looks like the
+ * TUI forgetting the last model at random. Poll briefly instead.
+ */
+async function awaitNamespace(
+  client: HarnessClient,
+  ns: string,
+  timeoutMs = 3000,
+): Promise<SettingsGetResult["namespaces"][number] | undefined> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const settings = await client.getSettings();
+    const found = settings.namespaces.find((entry) => entry.ns === ns);
+    if (found) return found;
+    if (Date.now() >= deadline) return undefined;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+}
+
+/** Read the remembered route, or undefined when nothing usable is stored. */
+async function readDefaultRoute(
+  client: HarnessClient,
+): Promise<
+  { provider: string; model: string; reasoningEffort?: string } | undefined
+> {
+  try {
+    const ns = await awaitNamespace(client, DEFAULT_ROUTE_NS);
+    const value = ns?.value as Record<string, unknown> | undefined;
+    const provider = value?.provider;
+    const model = value?.model;
+    if (typeof provider !== "string" || typeof model !== "string")
+      return undefined;
+    const reasoningEffort = value?.reasoningEffort;
+    return {
+      provider,
+      model,
+      ...(typeof reasoningEffort === "string" ? { reasoningEffort } : {}),
+    };
+  } catch {
+    // No settings backend composed, or the namespace is unregistered.
+    return undefined;
+  }
+}
+
+/** Store the route so the next launch starts on it. */
+async function persistDefaultRoute(
+  client: HarnessClient,
+  provider: string,
+  model: string,
+  reasoningEffort?: string,
+): Promise<void> {
+  const ns = await awaitNamespace(client, DEFAULT_ROUTE_NS);
+  if (!ns) return;
+  await client.setSettings({
+    namespace: DEFAULT_ROUTE_NS,
+    patch: {
+      provider,
+      model,
+      ...(reasoningEffort === undefined ? {} : { reasoningEffort }),
+    },
+    expectedRevision: ns.revision,
+  });
+}
+
 export function useHarness(options: UseHarnessOptions = {}): UseHarnessReturn {
   const initialProvider =
     options.provider ?? process.env.DSH_PROVIDER ?? "qwen-token-plan";
@@ -1180,6 +1249,47 @@ export function useHarness(options: UseHarnessOptions = {}): UseHarnessReturn {
           maxTokens,
         });
         if (disposed) return;
+        // Restore the route from the last session before anything is sent.
+        // An explicit DSH_PROVIDER/DSH_MODEL in the environment still wins.
+        if (!process.env.DSH_PROVIDER && !process.env.DSH_MODEL) {
+          const remembered = await readDefaultRoute(client);
+          if (
+            remembered &&
+            (remembered.provider !== initialProvider ||
+              remembered.model !== initialModel)
+          ) {
+            try {
+              const selected = await client.selectModel(
+                sessionIdRef.current,
+                remembered.provider,
+                remembered.model,
+                remembered.reasoningEffort,
+              );
+              routeRef.current = {
+                provider: selected.provider,
+                model: selected.model,
+                ...(selected.reasoningEffort === undefined
+                  ? {}
+                  : { reasoningEffort: selected.reasoningEffort }),
+              };
+              setState((prev) => ({
+                ...prev,
+                provider: selected.provider,
+                model: selected.model,
+                reasoningEffort: selected.reasoningEffort,
+              }));
+            } catch (error) {
+              // A remembered route can go stale (provider logged out, model
+              // retired). Stay on the default rather than failing startup.
+              notify(
+                `Could not restore ${remembered.provider}/${remembered.model}: ${
+                  error instanceof Error ? error.message : String(error)
+                }`,
+              );
+            }
+          }
+        }
+        if (disposed) return;
         startInteractionSubscription();
         startSubscription(sessionIdRef.current);
         statusRef.current = "idle";
@@ -1340,6 +1450,15 @@ export function useHarness(options: UseHarnessOptions = {}): UseHarnessReturn {
         notify(
           `Model: ${selected.provider}/${selected.model}${selected.reasoningEffort ? ` · reasoning ${selected.reasoningEffort}` : ""}`,
         );
+        // Remember the route so the next launch starts on it. Best-effort:
+        // a settings backend that rejects the write must not fail the switch
+        // the user just made and already saw applied.
+        void persistDefaultRoute(
+          requireClient(),
+          selected.provider,
+          selected.model,
+          selected.reasoningEffort,
+        ).catch(() => {});
       } finally {
         release();
       }
