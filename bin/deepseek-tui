@@ -5,4 +5,15 @@ app_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 export DSH_CWD="${DSH_CWD:-$PWD}"
 config_home="${XDG_CONFIG_HOME:-${HOME:-$app_root/.config}}"
 export DSH_PI_AI_AUTH_PATH="${DSH_PI_AI_AUTH_PATH:-$config_home/deepseek-tui/auth.json}"
+# The harness is a sibling checkout linked in as ~85 dependencies, and it
+# gitignores lib/ -- so an unbuilt or missing one fails as an unresolvable
+# import rather than anything a reader can act on. Say what to run instead.
+harness="${DSH_HARNESS_PATH:-$app_root/../deepseek-harness}"
+if [ ! -f "$harness/packages/sdk/client/lib/index.js" ]; then
+  echo "deepseek-tui: the DeepSeek Harness is missing or not built." >&2
+  echo "  expected: $harness" >&2
+  echo "  fix:      node $app_root/scripts/install.mjs" >&2
+  exit 1
+fi
+
 exec bun "$app_root/src/index.tsx" "$@"

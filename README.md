@@ -2,42 +2,70 @@
 
 A terminal client for the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness).
 
+> ### This needs a specific harness build
+>
+> The TUI calls L2 runtime methods — `settings/get`, `settings/set`,
+> `skills/list`, `agent-presets/list` — that are **not in upstream
+> `deepseek-ai/deepseek-harness`** and not in release `0.1.0-rc.7`. They live on
+> the `sdk-l2-protocol` branch of
+> **[Cass67/deepseek-harness](https://github.com/Cass67/deepseek-harness)**
+> (commit `9501b8d857`).
+>
+> Against upstream, the app **boots normally and then fails** the moment
+> anything reads settings: the settings overlay, the skill and agent-preset
+> pickers, and last-model-restore. There is no version to pin — every
+> dependency bar `react` and `@opentui/*` is a `link:` into a sibling checkout,
+> so you get whatever is in that working tree.
+>
+> `scripts/install.mjs` sets this up for you.
+
 The TUI is a thin client: it spawns the harness as a subprocess and speaks
-stdio JSON-RPC to it. The harness side is composed by this repo's
-`cordis.yml`, layered over the plugins `@deepseek-ai/dsh-agent-spine-demo`
-mounts underneath. Every durable session event streams back and drives the UI,
-so panels are projections of the event log rather than local state.
+stdio JSON-RPC to it. The harness side is composed by this repo's `cordis.yml`,
+layered over the plugins `@deepseek-ai/dsh-agent-spine-demo` mounts underneath.
+Every durable session event streams back and drives the UI, so the panels are
+projections of the event log rather than local state.
 
 Built with Bun, React and [OpenTUI](https://github.com/sst/opentui).
 
-## Requirements
+## Install
 
-- **Bun**, **Node.js** and **pnpm**
-- A checkout of the harness at `../deepseek-harness`
-- At least one model route (a local OpenAI-compatible server, or any of the
-  38 catalog providers)
+Requires **Bun**, **Node.js**, **pnpm** and **git**.
 
-> **The harness checkout must contain the L2 runtime methods**
-> (`settings/get`, `settings/set`, `skills/list`, `agent-presets/list`).
-> They are **not** in `0.1.0-rc.7`. Use the `sdk-l2-protocol` branch of
-> [Cass67/deepseek-harness](https://github.com/Cass67/deepseek-harness), or any
-> branch containing `9501b8d857`.
->
-> Without them the app still boots and then fails the moment anything reads
-> settings — the settings overlay, both pickers and last-model-restore. Every
-> dependency bar `react` and `@opentui/*` is a `link:` into that sibling
-> working tree, so the code you run is whatever is checked out there and there
-> is no version to pin. Run `node scripts/preflight.mjs` to check.
+```bash
+git clone https://github.com/Cass67/deepseek-tui.git
+cd deepseek-tui
+node scripts/install.mjs
+./bin/deepseek-tui
+```
+
+The installer clones the harness fork to `../deepseek-harness`, installs it,
+**builds it**, installs this app, and verifies the required L2 methods respond.
+It is safe to re-run, and never rewrites an existing harness checkout — if one
+is present but on the wrong revision it tells you the command to fix it.
+
+The build step is not optional and is the slow part: the harness gitignores
+`lib/`, and every `link:` dependency resolves through `exports` to `./lib/`.
+A cloned-but-unbuilt harness resolves nothing.
+
+```bash
+node scripts/install.mjs --check   # report only, change nothing
+node scripts/preflight.mjs         # do the L2 methods actually respond?
+```
+
+| Variable                                  | Effect                                                      |
+| ----------------------------------------- | ----------------------------------------------------------- |
+| `DSH_HARNESS_PATH`                        | Where the harness lives. Defaults to `../deepseek-harness`. |
+| `DSH_HARNESS_REPO` / `DSH_HARNESS_BRANCH` | Clone source. Defaults to the fork and `sdk-l2-protocol`.   |
 
 ## Run
 
 ```bash
-pnpm install
-node scripts/preflight.mjs   # confirms the linked harness is new enough
 ./bin/deepseek-tui
 ```
 
-The launcher preserves its caller's working directory as the agent workspace.
+The launcher preserves its caller's working directory as the agent workspace,
+and refuses to start with a pointer to the installer if the harness is missing
+or unbuilt.
 
 ### Environment
 
@@ -223,6 +251,7 @@ harness instead of mocking it:
 
 | Script                                | Checks                                                                  |
 | ------------------------------------- | ----------------------------------------------------------------------- |
+| `scripts/install.mjs --check`         | The harness checkout exists, is on the right revision, and is built     |
 | `scripts/preflight.mjs`               | The linked harness has the L2 methods this client calls                 |
 | `scripts/boot-test.mjs`               | The composition loads and reports its commands                          |
 | `scripts/l2-probe.mjs`                | Which L2 methods the harness answers                                    |
