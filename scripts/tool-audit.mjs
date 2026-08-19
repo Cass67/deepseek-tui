@@ -12,8 +12,19 @@ import { createServer } from "node:http";
 import { readFileSync, writeFileSync, unlinkSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { tmpdir } from "node:os";
 
 const APP_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+
+// Isolate from the user's settings file. Overrides there beat cordis.yml, so a
+// per-machine baseURL would send this probe at the real model instead of the
+// stub. An empty file keeps the run hermetic.
+const emptySettings = resolve(
+  tmpdir(),
+  `dsh-probe-settings-${process.pid}.yaml`,
+);
+writeFileSync(emptySettings, "{}\n");
+process.env.DEEPSEEK_TUI_CONFIG = emptySettings;
 const PORT = Number(process.env.TOOL_AUDIT_PORT ?? 8099);
 const probeConfig = resolve(APP_ROOT, "_tool-audit.cordis.yml");
 let captured = null;
@@ -60,9 +71,11 @@ await new Promise((r) => server.listen(PORT, "127.0.0.1", r));
 // The config must live inside the repo or its plugin names will not resolve.
 writeFileSync(
   probeConfig,
-  readFileSync(resolve(APP_ROOT, "cordis.yml"), "utf8").replaceAll(
-    "http://localhost:3200/v1",
-    `http://127.0.0.1:${PORT}/v1`,
+  // Point ONLY the local route at the stub -- other routes declare a
+  // baseURL too, so anchor on the env-driven line this repo ships.
+  readFileSync(resolve(APP_ROOT, "cordis.yml"), "utf8").replace(
+    /^(\s*)baseURL: !!js process\.env\.LOCAL_LLM_BASE_URL.*$/m,
+    `$1baseURL: http://127.0.0.1:${PORT}/v1`,
   ),
 );
 
@@ -98,6 +111,7 @@ try {
   await client.close().catch(() => {});
   server.close();
   unlinkSync(probeConfig);
+  unlinkSync(emptySettings);
 }
 
 if (!captured) {

@@ -64,13 +64,13 @@
             contextWindow: 196608
         reasoning: medium
 
-      # OpenAI-compatible router on the LAN box (localhost = localhost), mirroring
-      # ~/.pi/agent/models.json. No auth; tool calls and reasoning efforts pass
-      # through to the served model.
+      # Any OpenAI-compatible server. Point LOCAL_LLM_BASE_URL at yours, or
+      # override baseURL per-machine in providers.yaml (see README) so a host
+      # name local to one network never lands in this file.
       local-llm-router:
         displayName: Local LLM Router
         api: openai-completions
-        baseURL: http://localhost:3200/v1
+        baseURL: !!js process.env.LOCAL_LLM_BASE_URL ?? 'http://localhost:3200/v1'
         # pi-ai refuses an openai-completions request with neither api key nor
         # Authorization header; the router checks neither, so carry a bearer it
         # ignores. LOCAL_LLM_API_KEY overrides the placeholder if the box ever

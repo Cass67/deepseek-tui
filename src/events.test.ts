@@ -549,7 +549,7 @@ test("every known session event type is surfaced or explicitly ignored", () => {
 });
 
 // Regression: a sandbox-denied write was showing up in the deliverables panel
-// as "wrote /Users/cass/escape-test.txt" even though no file was created. A
+// as "wrote <outside-workspace>/escape.txt" even though no file was created. A
 // tool CALL is only an intent; the result decides whether it happened.
 test("only records deliverables for calls that succeeded", () => {
   const { messages, apply, deliverables } = makeCtx();
