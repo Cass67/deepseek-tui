@@ -56,23 +56,30 @@ export function AuthOverlay({
         </box>
       </scrollbox>
       {prompt && prompt.type !== "select" && (
-        <box
-          style={{
-            flexDirection: "column",
-            width: "100%",
-            border: true,
-            borderColor: theme.primary,
-            paddingX: 1,
-          }}
-        >
+        // The label sits ABOVE the box and the box holds only the value.
+        // Both inside, the growing scrollbox above squeezes this to a single
+        // row and the two lines draw over each other -- typing a key showed
+        // one bullet on top of the prompt text.
+        <box style={{ flexDirection: "column", width: "100%", flexShrink: 0 }}>
           <text fg={theme.text}>{prompt.message}</text>
-          <text fg={input ? theme.text : theme.textMuted}>
-            {input
-              ? concealed
-                ? "•".repeat([...input].length)
-                : input
-              : (prompt.placeholder ?? "type response...")}
-          </text>
+          <box
+            style={{
+              flexDirection: "column",
+              width: "100%",
+              flexShrink: 0,
+              border: true,
+              borderColor: theme.primary,
+              paddingX: 1,
+            }}
+          >
+            <text fg={input ? theme.text : theme.textMuted}>
+              {input
+                ? concealed
+                  ? "•".repeat([...input].length)
+                  : input
+                : (prompt.placeholder ?? "type response...")}
+            </text>
+          </box>
         </box>
       )}
       <text fg={theme.textMuted}>
