@@ -75,8 +75,21 @@ All mounted and booting. `node scripts/boot-test.mjs` is the check.
       `session_search` (63 sessions); and hit the sandbox refusal on a `$HOME`
       write, which offered an escalation. Trajectory, deliverables and the
       skill picker were rendered and checked on screen.
-- [ ] Still unexercised live: subagents, plan→execute, `/compact`,
-      `/sessions` resume.
+- [x] Subagents — parent delegated, child read TODO.md and reported back, parent
+      verified the count independently.
+- [x] Plan → execute — `/plan` raised the banner, the model presented a plan
+      through `exit_plan_mode`, approval exited plan mode and it carried the
+      work out (the test edit was reverted).
+- [x] `/compact` — "Compacted 36 history items (~13911 tokens)"; the trajectory
+      shows both the `command/run` and `compaction/summary` lines.
+- [x] `/sessions` resume — resumed across a real quit/relaunch with history and
+      token counts intact, and answered a follow-up from restored context
+      without re-reading files.
+
+Note: resume REFUSES a session that never reached the model, reporting
+`route (missing)/(missing)`. That is correct — the route is recovered from
+`request/header` events, and a session with none has no route to restore. It is
+not a bug, but the message could name the reason.
 
 ## Verification status
 
