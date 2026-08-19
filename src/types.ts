@@ -37,6 +37,24 @@ export interface GoalInfo {
   roundsStarted: number;
 }
 
+/** One entry in the trajectory (event) log, newest last. */
+export interface TrajectoryEntry {
+  id: number;
+  timestamp: number;
+  summary: string;
+}
+
+/** A file or command the agent produced, tracked from mutating tool calls. */
+export interface DeliverableEntry {
+  id: string;
+  timestamp: number;
+  toolName: string;
+  /** The file path (write/edit) or command (bash). */
+  target: string;
+  /** A short verb: "wrote", "edited", or "ran". */
+  action: string;
+}
+
 /** One member (sub-agent step) of a workflow run. */
 export interface WorkflowMember {
   seq: number;
@@ -87,6 +105,8 @@ export interface AppState {
   activity: string | null;
   activitySince: number | null;
   sessionId: string;
+  /** The active workspace directory (changes via the directory picker). */
+  workspaceDirectory: string;
   model: string;
   provider: string;
   reasoningEffort?: string;
@@ -107,4 +127,8 @@ export interface AppState {
   workflowRuns: WorkflowRun[];
   /** Feedback entries (from `feedback/record` events). */
   feedback: FeedbackEntry[];
+  /** Trajectory (event) log, newest last, bounded by a ring buffer. */
+  trajectory: TrajectoryEntry[];
+  /** Files/commands the agent produced, from mutating tool calls. */
+  deliverables: DeliverableEntry[];
 }

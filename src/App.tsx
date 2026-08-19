@@ -3,12 +3,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useKeyboard, usePaste, useRenderer } from "@opentui/react";
 import type {
+  AgentPresetWire,
   CommandDescriptor,
   CommandExecuteResult,
   ModelCatalogReasoningEffort,
   ModelCatalogResult,
   ProviderAuthInfoResult,
   HarnessNotification,
+  SkillSummaryWire,
 } from "@deepseek-ai/dsh-sdk-client";
 import { AuthOverlay, type AuthPromptView } from "./AuthOverlay.tsx";
 import { ChatView } from "./ChatView.tsx";
@@ -18,12 +20,17 @@ import {
 } from "./clipboard.ts";
 import { COMMANDS, parseInput } from "./commands.ts";
 import { ControlOverlay } from "./ControlOverlay.tsx";
+import { DirectoryPicker } from "./DirectoryPicker.tsx";
 import { InputBar } from "./InputBar.tsx";
 import { ApprovalOverlay, QuestionOverlay } from "./InteractionOverlay.tsx";
 import { Picker } from "./Picker.tsx";
 import { openExternalUrl } from "./openExternal.ts";
 import { PlanBanner } from "./PlanBanner.tsx";
+import { SettingsOverlay } from "./SettingsOverlay.tsx";
+import { TrajectoryPanel } from "./TrajectoryPanel.tsx";
+import { DeliverablesPanel } from "./DeliverablesPanel.tsx";
 import { ActivityPanels } from "./ActivityPanels.tsx";
+import { FeedbackPanel } from "./FeedbackPanel.tsx";
 import { GoalPanel } from "./GoalPanel.tsx";
 import { WorkflowPanel } from "./WorkflowPanel.tsx";
 import { loadThemePreference, saveThemePreference } from "./preferences.ts";
@@ -94,7 +101,16 @@ type Overlay =
       defaultEffort?: string;
     }
   | { kind: "sessions"; sessions: readonly SessionChoice[] }
+  | { kind: "skills"; skills: readonly SkillSummaryWire[] }
+  | {
+      kind: "agent-presets";
+      presets: readonly AgentPresetWire[];
+      defaultId?: string;
+    }
   | { kind: "themes" }
+  | { kind: "directory" }
+  | { kind: "trajectory" }
+  | { kind: "deliverables" }
   | { kind: "settings" };
 
 export function App() {
@@ -371,6 +387,40 @@ function AppBody({ themeName, onThemeChange }: AppBodyProps) {
         lines: ["Loading durable sessions..."],
       });
       setOverlay({ kind: "sessions", sessions: await harness.listSessions() });
+    } catch (error) {
+      reportError(error);
+      setOverlay({ kind: "none" });
+    }
+  }, [harness, reportError]);
+
+  const openSkillPicker = useCallback(async () => {
+    try {
+      setOverlay({
+        kind: "panel",
+        title: "Skills",
+        lines: ["Loading skill catalog..."],
+      });
+      const result = await harness.listSkills();
+      setOverlay({ kind: "skills", skills: result.skills });
+    } catch (error) {
+      reportError(error);
+      setOverlay({ kind: "none" });
+    }
+  }, [harness, reportError]);
+
+  const openAgentPresetPicker = useCallback(async () => {
+    try {
+      setOverlay({
+        kind: "panel",
+        title: "Agent presets",
+        lines: ["Loading agent presets..."],
+      });
+      const result = await harness.listAgentPresets();
+      setOverlay({
+        kind: "agent-presets",
+        presets: result.presets,
+        defaultId: result.defaultId,
+      });
     } catch (error) {
       reportError(error);
       setOverlay({ kind: "none" });
@@ -854,6 +904,26 @@ function AppBody({ themeName, onThemeChange }: AppBodyProps) {
       setOverlay({ kind: "settings" });
       return;
     }
+    if (key.ctrl && key.name === "k") {
+      void openSkillPicker();
+      return;
+    }
+    if (key.ctrl && key.name === "a") {
+      void openAgentPresetPicker();
+      return;
+    }
+    if (key.ctrl && key.name === "d") {
+      setOverlay({ kind: "directory" });
+      return;
+    }
+    if (key.ctrl && key.name === "y") {
+      setOverlay({ kind: "trajectory" });
+      return;
+    }
+    if (key.ctrl && key.name === "o") {
+      setOverlay({ kind: "deliverables" });
+      return;
+    }
     if (key.ctrl && !key.shift && !key.meta && !key.super && key.name === "c") {
       if (shellRunning) void cancelShell();
       else if (state.status === "running")
@@ -906,6 +976,7 @@ function AppBody({ themeName, onThemeChange }: AppBodyProps) {
           {state.goal && <GoalPanel goal={state.goal} />}
           <ActivityPanels subagents={state.subagents} jobs={state.jobs} />
           <WorkflowPanel runs={state.workflowRuns} />
+          <FeedbackPanel feedback={state.feedback} />
           <ChatView
             messages={state.messages}
             streamingText={state.currentStreamingText}
@@ -1084,6 +1155,37 @@ function AppBody({ themeName, onThemeChange }: AppBodyProps) {
           }}
         />
       )}
+      {!activeInteraction && overlay.kind === "skills" && (
+        <Picker
+          title="Select skill"
+          options={overlay.skills.map((skill) => ({
+            value: skill.name,
+            name: skill.name,
+            description: skill.description,
+          }))}
+          searchable={true}
+          onSelect={(name) => {
+            setOverlay({ kind: "none" });
+            void harness.executeCommand(`/skill ${name}`).catch(reportError);
+          }}
+        />
+      )}
+      {!activeInteraction && overlay.kind === "agent-presets" && (
+        <Picker
+          title="Select agent preset"
+          options={overlay.presets.map((preset) => ({
+            value: preset.id,
+            name: preset.name ?? preset.id,
+            description: preset.description ?? preset.path,
+          }))}
+          selectedValue={overlay.defaultId}
+          searchable={true}
+          onSelect={(id) => {
+            setOverlay({ kind: "none" });
+            void harness.executeCommand(`/preset ${id}`).catch(reportError);
+          }}
+        />
+      )}
       {!activeInteraction && overlay.kind === "themes" && (
         <Picker
           title="Select theme"
@@ -1096,23 +1198,31 @@ function AppBody({ themeName, onThemeChange }: AppBodyProps) {
         />
       )}
 
+      {!activeInteraction && overlay.kind === "directory" && (
+        <DirectoryPicker
+          initialDirectory={state.workspaceDirectory}
+          onSelect={(directory) => {
+            setOverlay({ kind: "none" });
+            void harness.setWorkspaceDirectory(directory).catch(reportError);
+          }}
+        />
+      )}
+
+      {!activeInteraction && overlay.kind === "trajectory" && (
+        <TrajectoryPanel entries={state.trajectory} />
+      )}
+
+      {!activeInteraction && overlay.kind === "deliverables" && (
+        <DeliverablesPanel entries={state.deliverables} />
+      )}
+
       {!activeInteraction && overlay.kind === "settings" && (
-        <ControlOverlay
-          title="Settings"
-          lines={[
-            `Model:      ${state.provider}/${state.model}`,
-            `Reasoning:  ${state.reasoningEffort ?? "default"}`,
-            `Theme:      ${themeName}`,
-            `Session:    ${state.sessionId.slice(0, 12)}…`,
-            "",
-            "Shortcuts:",
-            "  Ctrl+L  switch model",
-            "  Ctrl+T  reasoning effort",
-            "  Ctrl+P  switch provider",
-            "  Ctrl+R  resume session",
-            "  Ctrl+S  this panel",
-            "  Esc     close",
-          ]}
+        <SettingsOverlay
+          getSettings={harness.getSettings}
+          model={`${state.provider}/${state.model}`}
+          reasoning={state.reasoningEffort ?? "default"}
+          themeName={themeName}
+          session={state.sessionId.slice(0, 12) + "…"}
         />
       )}
 

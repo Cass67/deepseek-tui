@@ -2,13 +2,19 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type {
   ChatMessage,
+  DeliverableEntry,
   FeedbackEntry,
   GoalInfo,
   JobInfo,
   SubagentInfo,
   WorkflowRun,
 } from "./types.ts";
-import { activityForEvent, processEvent } from "./useHarness.ts";
+import {
+  activityForEvent,
+  deliverableForToolCall,
+  processEvent,
+  trajectorySummary,
+} from "./useHarness.ts";
 
 /** Build a fresh processEvent ctx with the mutable panel collections. */
 function makeCtx() {
@@ -19,6 +25,7 @@ function makeCtx() {
   const toolCallNames = new Map<string, string>();
   const workflowRuns: WorkflowRun[] = [];
   const feedback: FeedbackEntry[] = [];
+  const deliverables: DeliverableEntry[] = [];
   const ctx = {
     streamingText: "",
     assistantId: null as string | null,
@@ -29,6 +36,7 @@ function makeCtx() {
     goal: null as GoalInfo | null,
     workflowRuns,
     feedback,
+    deliverables,
     toolCallNames,
   };
   const apply = (event: Record<string, unknown>): void => {
@@ -120,6 +128,7 @@ test("keeps reasoning out of answer markdown and exposes long-running activity",
     goal: null,
     workflowRuns: [],
     feedback: [],
+    deliverables: [],
     toolCallNames: new Map<string, string>(),
   });
 
@@ -357,6 +366,7 @@ test("tracks workflow runs and member outcomes", () => {
     goal: null,
     workflowRuns: shared,
     feedback: [],
+    deliverables: [],
     toolCallNames: new Map<string, string>(),
   };
   const messages: ChatMessage[] = [];
@@ -403,7 +413,7 @@ test("tracks workflow runs and member outcomes", () => {
 });
 
 test("tracks feedback entries", () => {
-  const { messages, apply } = makeCtx();
+  const { messages } = makeCtx();
   const feedback: FeedbackEntry[] = [];
   const ctx = {
     streamingText: "",
@@ -415,6 +425,7 @@ test("tracks feedback entries", () => {
     goal: null,
     workflowRuns: [],
     feedback,
+    deliverables: [],
     toolCallNames: new Map<string, string>(),
   };
   processEvent(
@@ -431,4 +442,67 @@ test("tracks feedback entries", () => {
   );
   assert.equal(feedback.length, 2);
   assert.equal(feedback[1].text, "could be better");
+});
+
+test("extracts deliverables from mutating tool calls", () => {
+  assert.deepEqual(
+    deliverableForToolCall("write", JSON.stringify({ file_path: "/a/b.ts" })),
+    { target: "/a/b.ts", action: "wrote" },
+  );
+  assert.deepEqual(
+    deliverableForToolCall("edit", JSON.stringify({ file_path: "/a/b.ts" })),
+    { target: "/a/b.ts", action: "edited" },
+  );
+  assert.deepEqual(
+    deliverableForToolCall("bash", JSON.stringify({ command: "ls -l" })),
+    { target: "ls -l", action: "ran" },
+  );
+  // Read-only tools produce nothing.
+  assert.equal(
+    deliverableForToolCall("read", JSON.stringify({ file_path: "/a" })),
+    null,
+  );
+  // Malformed or non-object arguments must not throw.
+  assert.equal(deliverableForToolCall("write", "not json"), null);
+  assert.equal(deliverableForToolCall("write", "[1,2]"), null);
+  // Right tool, missing the field it needs.
+  assert.equal(
+    deliverableForToolCall("bash", JSON.stringify({ cmd: "ls" })),
+    null,
+  );
+});
+
+test("summarises events for the trajectory log", () => {
+  const names = new Map<string, string>([["call-1", "bash"]]);
+
+  assert.equal(
+    trajectorySummary(
+      {
+        type: "tool/call",
+        data: { name: "bash", arguments: '{"command":"ls"}' },
+      },
+      names,
+    ),
+    '\u2192 bash {"command":"ls"}',
+  );
+
+  // Result lines resolve the tool name via the callId map.
+  const resultLine = trajectorySummary(
+    {
+      type: "tool/result",
+      data: {
+        message: {
+          source: { callId: "call-1" },
+          content: [
+            { type: "tool-result", content: "total 0", isError: false },
+          ],
+        },
+      },
+    },
+    names,
+  );
+  assert.ok(resultLine?.startsWith("\u2190 bash"), `got: ${resultLine}`);
+
+  // Events with no data, and per-token deltas, are not logged.
+  assert.equal(trajectorySummary({ type: "assistant/chunk" }, names), null);
 });

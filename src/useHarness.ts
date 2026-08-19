@@ -5,11 +5,13 @@
 
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import { stat } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { HarnessClient } from "@deepseek-ai/dsh-sdk-client";
 import type {
+  AgentPresetsListResult,
   CommandExecuteResult,
   CommandListResult,
   ImageAttachmentRef,
@@ -20,6 +22,10 @@ import type {
   NotificationSubscription,
   SessionHistoryEvent,
   SessionListEntry,
+  SettingsGetResult,
+  SettingsSetParams,
+  SettingsSetResult,
+  SkillsListResult,
 } from "@deepseek-ai/dsh-sdk-client";
 import { prepareImageFile, promptContent } from "./attachments.ts";
 import {
@@ -40,11 +46,13 @@ import type {
   AgentStatus,
   AppState,
   ChatMessage,
+  DeliverableEntry,
   FeedbackEntry,
   GoalInfo,
   JobInfo,
   SubagentInfo,
   TodoItem,
+  TrajectoryEntry,
   WorkflowMember,
   WorkflowRun,
 } from "./types.ts";
@@ -61,6 +69,66 @@ const CORDIS_CONFIG =
   process.env.DSH_CORDIS_CONFIG ?? resolve(APP_ROOT, "cordis.yml");
 
 const FLUSH_INTERVAL_MS = 50;
+/** Maximum number of trajectory (event log) entries retained. */
+const TRAJECTORY_LIMIT = 500;
+
+/** Collapse whitespace and cap length for a one-line trajectory summary. */
+function truncateSummary(text: string, max = 120): string {
+  const flat = text.replace(/\s+/g, " ").trim();
+  return flat.length > max ? `${flat.slice(0, max - 1)}…` : flat;
+}
+
+/**
+ * Produce a one-line, human-readable summary of a session event for the
+ * trajectory log. Returns null for events that should not be logged (e.g.
+ * per-token model deltas).
+ */
+export function trajectorySummary(
+  event: Record<string, unknown>,
+  toolCallNames: Map<string, string>,
+): string | null {
+  const type = event.type as string;
+  const data = event.data as Record<string, unknown> | undefined;
+  if (!data) return null;
+  switch (type) {
+    case "user/message": {
+      const source = data.source as Record<string, unknown> | undefined;
+      if (source?.kind !== "user") return null;
+      const text = extractText(data.content);
+      return text ? `user: ${truncateSummary(text)}` : null;
+    }
+    case "assistant/message": {
+      const message = data.message as Record<string, unknown> | undefined;
+      const text = extractText(message?.content);
+      return text ? `assistant: ${truncateSummary(text)}` : null;
+    }
+    case "tool/call": {
+      const name = data.name as string;
+      const args = data.arguments as string | undefined;
+      return `→ ${name}${args ? ` ${truncateSummary(args, 80)}` : ""}`;
+    }
+    case "tool/result": {
+      const message = data.message as Record<string, unknown> | undefined;
+      const result = toolResultBlock(message?.content);
+      const text = extractText(result?.content);
+      const callId = (message?.source as Record<string, unknown> | undefined)
+        ?.callId as string | undefined;
+      const name = callId ? toolCallNames.get(callId) : undefined;
+      const isError = result?.isError === true;
+      return `← ${name ?? "tool"}${isError ? " (error)" : ""}: ${truncateSummary(text ?? "", 80)}`;
+    }
+    case "turn/start":
+      return `— turn ${String(data.turn ?? "")} start —`;
+    case "turn/end":
+      return `— turn ${String(data.turn ?? "")} end —`;
+    case "step/start":
+      return `  step ${String(data.step ?? "")}`;
+    case "plan/mode":
+      return `plan mode: ${data.active === true ? "on" : "off"}`;
+    default:
+      return null;
+  }
+}
 
 /** Describe current model/agent work from durable lifecycle events. */
 export function activityForEvent(
@@ -197,6 +265,11 @@ export interface UseHarnessReturn {
   cancel: () => Promise<boolean>;
   listCommands: () => Promise<CommandListResult>;
   executeCommand: (line: string) => Promise<CommandExecuteResult>;
+  listSkills: () => Promise<SkillsListResult>;
+  listAgentPresets: () => Promise<AgentPresetsListResult>;
+  getSettings: () => Promise<SettingsGetResult>;
+  setSettings: (params: SettingsSetParams) => Promise<SettingsSetResult>;
+  setWorkspaceDirectory: (directory: string) => Promise<void>;
   providerAuthInfo: (provider: string) => Promise<ProviderAuthInfoResult>;
   startProviderAuth: (
     provider: string,
@@ -251,6 +324,44 @@ function imageAttachments(content: unknown): ImageAttachmentRef[] {
   });
 }
 
+/**
+ * Extract a deliverable (file path or command) from a mutating tool call.
+ * Returns null for tools that do not produce a deliverable.
+ */
+export function deliverableForToolCall(
+  toolName: string,
+  argumentsJson: string,
+): { target: string; action: string } | null {
+  let args: Record<string, unknown>;
+  try {
+    const parsed: unknown = JSON.parse(argumentsJson);
+    if (typeof parsed !== "object" || parsed === null) return null;
+    args = parsed as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+  switch (toolName) {
+    case "write": {
+      const path = typeof args.file_path === "string" ? args.file_path : null;
+      return path ? { target: path, action: "wrote" } : null;
+    }
+    case "edit": {
+      const path = typeof args.file_path === "string" ? args.file_path : null;
+      return path ? { target: path, action: "edited" } : null;
+    }
+    case "str_replace_editor": {
+      const path = typeof args.path === "string" ? args.path : null;
+      return path ? { target: path, action: "edited" } : null;
+    }
+    case "bash": {
+      const command = typeof args.command === "string" ? args.command : null;
+      return command ? { target: command, action: "ran" } : null;
+    }
+    default:
+      return null;
+  }
+}
+
 /** Process one session event into the mutable message list. */
 export function processEvent(
   event: Record<string, unknown>,
@@ -265,6 +376,7 @@ export function processEvent(
     goal: GoalInfo | null;
     workflowRuns: WorkflowRun[];
     feedback: FeedbackEntry[];
+    deliverables: DeliverableEntry[];
     toolCallNames: Map<string, string>;
   },
 ): {
@@ -378,7 +490,7 @@ export function processEvent(
       if (callId) ctx.toolCallNames.set(callId, toolName);
       // Track subagent delegations for the subagents panel.
       if (toolName === "subagent" || toolName === "subagent_fork") {
-        let description = "";
+        let description: string;
         try {
           const args = JSON.parse(data.arguments as string);
           description = String(args.description ?? "");
@@ -389,6 +501,20 @@ export function processEvent(
           id: callId,
           description,
           status: "running",
+        });
+      }
+      // Track mutating tool calls (write/edit/bash) for the deliverables panel.
+      const deliverable = deliverableForToolCall(
+        toolName,
+        data.arguments as string,
+      );
+      if (deliverable) {
+        ctx.deliverables.push({
+          id: nextId(),
+          timestamp: Date.now(),
+          toolName,
+          target: deliverable.target,
+          action: deliverable.action,
         });
       }
       break;
@@ -622,6 +748,7 @@ export function replayHistory(events: readonly SessionHistoryEvent[]): {
   goal: GoalInfo | null;
   workflowRuns: WorkflowRun[];
   feedback: FeedbackEntry[];
+  deliverables: DeliverableEntry[];
 } {
   const messages: ChatMessage[] = [];
   const usage = { input: 0, output: 0 };
@@ -629,6 +756,7 @@ export function replayHistory(events: readonly SessionHistoryEvent[]): {
   const jobs: JobInfo[] = [];
   const workflowRuns: WorkflowRun[] = [];
   const feedback: FeedbackEntry[] = [];
+  const deliverables: DeliverableEntry[] = [];
   const toolCallNames = new Map<string, string>();
   const ctx = {
     streamingText: "",
@@ -640,6 +768,7 @@ export function replayHistory(events: readonly SessionHistoryEvent[]): {
     goal: null as GoalInfo | null,
     workflowRuns,
     feedback,
+    deliverables,
     toolCallNames,
   };
   for (const event of events) {
@@ -661,6 +790,7 @@ export function replayHistory(events: readonly SessionHistoryEvent[]): {
     goal: ctx.goal,
     workflowRuns,
     feedback,
+    deliverables,
   };
 }
 
@@ -670,7 +800,8 @@ export function useHarness(options: UseHarnessOptions = {}): UseHarnessReturn {
   const initialModel =
     options.model ?? process.env.DSH_MODEL ?? "qwen3.8-max-preview";
   const cwd = options.cwd ?? process.env.DSH_CWD ?? process.cwd();
-  const maxTokens = options.maxTokens ?? 16_384;
+  const maxTokens =
+    options.maxTokens ?? (Number(process.env.DSH_MAX_TOKENS) || 16_384);
   const initialSessionId = useRef(`tui-session-${randomUUID()}`).current;
 
   const [state, setState] = useState<AppState>({
@@ -679,6 +810,7 @@ export function useHarness(options: UseHarnessOptions = {}): UseHarnessReturn {
     activity: "starting runtime",
     activitySince: Date.now(),
     sessionId: initialSessionId,
+    workspaceDirectory: cwd,
     model: initialModel,
     provider: initialProvider,
     tokenUsage: { input: 0, output: 0 },
@@ -692,6 +824,8 @@ export function useHarness(options: UseHarnessOptions = {}): UseHarnessReturn {
     goal: null,
     workflowRuns: [],
     feedback: [],
+    trajectory: [],
+    deliverables: [],
   });
 
   const clientRef = useRef<HarnessClient | null>(null);
@@ -714,9 +848,13 @@ export function useHarness(options: UseHarnessOptions = {}): UseHarnessReturn {
   const goalRef = useRef<GoalInfo | null>(null);
   const workflowRunsRef = useRef<WorkflowRun[]>([]);
   const feedbackRef = useRef<FeedbackEntry[]>([]);
+  const trajectoryRef = useRef<TrajectoryEntry[]>([]);
+  const trajectoryIdRef = useRef(0);
+  const deliverablesRef = useRef<DeliverableEntry[]>([]);
   const toolCallNamesRef = useRef(new Map<string, string>());
   const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sessionIdRef = useRef(initialSessionId);
+  const workspaceDirectoryRef = useRef(cwd);
   const routeRef = useRef<{
     provider: string;
     model: string;
@@ -743,6 +881,7 @@ export function useHarness(options: UseHarnessOptions = {}): UseHarnessReturn {
       ...prev,
       messages: [...messagesRef.current],
       currentStreamingText: streamingRef.current,
+      workspaceDirectory: workspaceDirectoryRef.current,
       status: statusRef.current,
       activity: activityRef.current,
       activitySince: activitySinceRef.current,
@@ -759,6 +898,8 @@ export function useHarness(options: UseHarnessOptions = {}): UseHarnessReturn {
         members: [...run.members],
       })),
       feedback: [...feedbackRef.current],
+      trajectory: [...trajectoryRef.current],
+      deliverables: [...deliverablesRef.current],
     }));
   }, []);
 
@@ -852,11 +993,27 @@ export function useHarness(options: UseHarnessOptions = {}): UseHarnessReturn {
                 goal: goalRef.current,
                 workflowRuns: workflowRunsRef.current,
                 feedback: feedbackRef.current,
+                deliverables: deliverablesRef.current,
                 toolCallNames: toolCallNamesRef.current,
               });
               streamingRef.current = result.streamingText;
               assistantIdRef.current = result.assistantId;
               planModeRef.current = result.planModeActive;
+              const summary = trajectorySummary(
+                event,
+                toolCallNamesRef.current,
+              );
+              if (summary !== null) {
+                const buffer = trajectoryRef.current;
+                buffer.push({
+                  id: ++trajectoryIdRef.current,
+                  timestamp: Date.now(),
+                  summary,
+                });
+                if (buffer.length > TRAJECTORY_LIMIT) {
+                  buffer.splice(0, buffer.length - TRAJECTORY_LIMIT);
+                }
+              }
               scheduleFlush();
             } else if (notification.method === "session.status") {
               const params = notification.params as unknown as Record<
@@ -1355,6 +1512,7 @@ export function useHarness(options: UseHarnessOptions = {}): UseHarnessReturn {
         goalRef.current = replayed.goal;
         workflowRunsRef.current = replayed.workflowRuns;
         feedbackRef.current = replayed.feedback;
+        deliverablesRef.current = replayed.deliverables;
         toolCallNamesRef.current = new Map();
         streamingRef.current = "";
         assistantIdRef.current = null;
@@ -1424,7 +1582,7 @@ export function useHarness(options: UseHarnessOptions = {}): UseHarnessReturn {
         }
         const prepared = await prepareImageFile(
           path,
-          cwd,
+          workspaceDirectoryRef.current,
           limits,
           allowOutsideWorkspace,
         );
@@ -1457,7 +1615,7 @@ export function useHarness(options: UseHarnessOptions = {}): UseHarnessReturn {
         release();
       }
     },
-    [cwd, flushState, notify, requireClient],
+    [flushState, notify, requireClient],
   );
 
   const clearAttachments = useCallback(() => {
@@ -1589,6 +1747,75 @@ export function useHarness(options: UseHarnessOptions = {}): UseHarnessReturn {
     [flushState, requireClient, setActivity],
   );
 
+  const listSkills = useCallback(async () => {
+    const release = operationLockRef.current.acquire("list skills");
+    try {
+      return await requireClient().listSkills();
+    } finally {
+      release();
+    }
+  }, [requireClient]);
+
+  const listAgentPresets = useCallback(async () => {
+    const release = operationLockRef.current.acquire("list agent presets");
+    try {
+      return await requireClient().listAgentPresets();
+    } finally {
+      release();
+    }
+  }, [requireClient]);
+
+  const getSettings = useCallback(async (): Promise<SettingsGetResult> => {
+    const release = operationLockRef.current.acquire("get settings");
+    try {
+      return await requireClient().getSettings();
+    } finally {
+      release();
+    }
+  }, [requireClient]);
+
+  const setSettings = useCallback(
+    async (params: SettingsSetParams): Promise<SettingsSetResult> => {
+      const release = operationLockRef.current.acquire("set settings");
+      try {
+        return await requireClient().setSettings(params);
+      } finally {
+        release();
+      }
+    },
+    [requireClient],
+  );
+
+  const setWorkspaceDirectory = useCallback(
+    async (directory: string): Promise<void> => {
+      const release = operationLockRef.current.acquire(
+        "set workspace directory",
+      );
+      try {
+        const target = resolve(directory);
+        const info = await stat(target);
+        if (!info.isDirectory()) {
+          throw new Error(`Not a directory: ${target}`);
+        }
+        workspaceDirectoryRef.current = target;
+        // Re-initialize so new sessions pick up the updated meta.cwd. The
+        // runtime's initialize is idempotent; the subprocess's DSH_CWD env
+        // stays at its startup value (bash/fs tools keep the original cwd).
+        await requireClient().initialize({
+          cwd: target,
+          provider: routeRef.current.provider,
+          model: routeRef.current.model,
+          maxTokens,
+        });
+        notify(`Workspace directory: ${target}`);
+        flushState();
+      } finally {
+        release();
+      }
+    },
+    [flushState, maxTokens, notify, requireClient],
+  );
+
   const providerAuthInfo = useCallback(
     (provider: string) => requireClient().providerAuthInfo(provider),
     [requireClient],
@@ -1700,6 +1927,11 @@ export function useHarness(options: UseHarnessOptions = {}): UseHarnessReturn {
     cancel,
     listCommands,
     executeCommand,
+    listSkills,
+    listAgentPresets,
+    getSettings,
+    setSettings,
+    setWorkspaceDirectory,
     providerAuthInfo,
     startProviderAuth,
     respondProviderAuth,
