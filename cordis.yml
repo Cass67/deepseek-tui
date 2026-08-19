@@ -347,17 +347,38 @@
 - id: code-runtime-worker-thread
   name: "@deepseek-ai/dsh-code-runtime-worker-thread"
 
+# ── Agent presets: named agents, picked with Ctrl+A ──────────────────────────
+# A preset is a directory under a root below: agent.cordis.yml is the
+# per-session composition, preset.yml is the name/description the picker shows.
+# The directory name is the id. Name an agent by the KIND OF WORK it does and
+# let its composition choose the model -- see .dsh/presets/*/agent.cordis.yml.
+- id: agent-presets
+  name: "@deepseek-ai/dsh-agent-presets"
+  config:
+    default: build
+    roots:
+      - path: !!js ((process.env.DSH_CWD ?? process.cwd()) + '/.dsh/presets')
+        trust: user
+
 # ── MCP: third-party servers contributing tools ──────────────────────────────
-# Mounted once PER SERVER: serverName and command are both required, so there
-# is nothing sensible to mount by default. Copy this row per server:
-#
-# - id: mcp-<name>
-#   name: "@deepseek-ai/dsh-mcp-client"
-#   config:
-#     transport: stdio
-#     serverName: <name>
-#     command: <executable>
-#     args: []
+# One row PER SERVER -- serverName and command are both required. Each server's
+# tools join ctx.tools at runtime, so they appear in no static catalog.
+
+# Context7: up-to-date library and framework documentation on demand.
+# failOnStartupError stays false so a network or npx hiccup degrades to "no
+# context7 tools" instead of stopping the whole TUI from booting.
+- id: mcp-context7
+  name: "@deepseek-ai/dsh-mcp-client"
+  config:
+    transport: stdio
+    serverName: context7
+    command: npx
+    args: ["-y", "@upstash/context7-mcp"]
+    # Optional: raises rate limits. Unset is fine.
+    env:
+      CONTEXT7_API_KEY: !!js process.env.CONTEXT7_API_KEY ?? ''
+    toolCallTimeoutMs: 60000
+    failOnStartupError: false
 
 # ── Terminal: persistent PTY sessions ────────────────────────────────────────
 # Long-lived shells the model opens, reads from and sends to, as opposed to the

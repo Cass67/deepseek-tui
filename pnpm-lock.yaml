@@ -13,6 +13,9 @@ importers:
       "@deepseek-ai/dsh-agent-default-model":
         specifier: link:../deepseek-harness/packages/core/agent-default-model
         version: link:../deepseek-harness/packages/core/agent-default-model
+      "@deepseek-ai/dsh-agent-presets":
+        specifier: link:../deepseek-harness/packages/preset/agent-presets
+        version: link:../deepseek-harness/packages/preset/agent-presets
       "@deepseek-ai/dsh-agent-spine-demo":
         specifier: link:../deepseek-harness/packages/examples/agent-spine-demo
         version: link:../deepseek-harness/packages/examples/agent-spine-demo

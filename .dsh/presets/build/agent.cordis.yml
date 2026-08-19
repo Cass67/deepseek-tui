@@ -1,0 +1,6 @@
+# build -- the default worker.
+- id: preset-model
+  name: "@deepseek-ai/dsh-agent-default-model"
+  config:
+    provider: local-llm-router
+    model: router

@@ -1,0 +1,9 @@
+# verify -- the second opinion.
+#
+# Deliberately routed to a DIFFERENT model family from `build`, so verification
+# is not the same model marking its own homework.
+- id: preset-model
+  name: "@deepseek-ai/dsh-agent-default-model"
+  config:
+    provider: qwen-token-plan
+    model: qwen3.8-max-preview

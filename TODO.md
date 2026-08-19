@@ -59,8 +59,17 @@ All mounted and booting. `node scripts/boot-test.mjs` is the check.
       the base `dsh-code-runtime` must not also be mounted.
 - [x] Session search — `dsh-tool-session-query`. The index was already mounted
       but configured `openAt: never`, which refuses every search.
-- [ ] MCP — client installed, but it mounts once per server (`serverName` and
-      `command` are both required). `cordis.yml` has a commented template.
+- [x] MCP — `dsh-mcp-client` mounted for **context7** over stdio
+      (`npx -y @upstash/context7-mcp`), adding `mcp__context7__query-docs` and
+      `mcp__context7__resolve-library-id`. Verified live: the model resolved a
+      library id and quoted real docs with a source link. `failOnStartupError`
+      is false, so a network hiccup degrades to "no context7 tools" rather than
+      blocking boot. Add more servers by copying the row.
+- [x] Agent presets — three named by the KIND OF WORK, in `.dsh/presets/`:
+      `build` (main worker), `research` (light, fast), `verify` (second
+      opinion, deliberately routed to a different model family so it is not the
+      same model marking its own homework). Each preset's `agent.cordis.yml`
+      picks its own route, which is the knob to retune.
 
 ## Phase 5 — Parity sweep
 

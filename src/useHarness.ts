@@ -327,6 +327,7 @@ export interface UseHarnessReturn {
   executeCommand: (line: string) => Promise<CommandExecuteResult>;
   listSkills: () => Promise<SkillsListResult>;
   listAgentPresets: () => Promise<AgentPresetsListResult>;
+  selectAgentPreset: (id: string) => Promise<void>;
   getSettings: () => Promise<SettingsGetResult>;
   setSettings: (params: SettingsSetParams) => Promise<SettingsSetResult>;
   setWorkspaceDirectory: (directory: string) => Promise<void>;
@@ -1962,6 +1963,28 @@ export function useHarness(options: UseHarnessOptions = {}): UseHarnessReturn {
     }
   }, [requireClient]);
 
+  /** Preset selection is a settings write; the harness has no /preset command. */
+  const selectAgentPreset = useCallback(
+    async (id: string): Promise<void> => {
+      const release = operationLockRef.current.acquire(
+        "select an agent preset",
+      );
+      try {
+        const client = requireClient();
+        const ns = await awaitNamespace(client, "agent-presets");
+        if (!ns) throw new Error("agent presets are not composed");
+        await client.setSettings({
+          namespace: "agent-presets",
+          patch: { default: id },
+          expectedRevision: ns.revision,
+        });
+      } finally {
+        release();
+      }
+    },
+    [requireClient],
+  );
+
   const getSettings = useCallback(async (): Promise<SettingsGetResult> => {
     const release = operationLockRef.current.acquire("get settings");
     try {
@@ -2126,6 +2149,7 @@ export function useHarness(options: UseHarnessOptions = {}): UseHarnessReturn {
     executeCommand,
     listSkills,
     listAgentPresets,
+    selectAgentPreset,
     getSettings,
     setSettings,
     setWorkspaceDirectory,

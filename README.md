@@ -129,9 +129,26 @@ design), and `dsh-tool-bash-persistent` (superseded by the terminal tools).
 backends, so writes and commands are confined by `ctx.sandboxPolicy`. The
 default mode is `workspace-write`; `/permission` switches presets.
 
-**MCP.** `@deepseek-ai/dsh-mcp-client` is installed but mounts once per server,
-since `serverName` and `command` are both required. `cordis.yml` carries a
-commented template — copy it per server.
+**MCP.** Mounted once per server. **context7** ships wired up over stdio
+(`npx -y @upstash/context7-mcp`), contributing `mcp__context7__resolve-library-id`
+and `mcp__context7__query-docs` for up-to-date library documentation. Set
+`CONTEXT7_API_KEY` to raise rate limits. Copy the `mcp-context7` row in
+`cordis.yml` to add more servers. MCP tools register asynchronously after the
+server connects, so they appear a moment after boot.
+
+**Agent presets** (`Ctrl+A`). Named by the kind of work, not the model — each
+preset's composition picks its own route, so retuning is a two-line edit:
+
+| Preset     | For                                                                      |
+| ---------- | ------------------------------------------------------------------------ |
+| `build`    | The main worker. Plans, edits, runs things, sees a change through.       |
+| `research` | Light and fast. Reads, searches, looks up docs.                          |
+| `verify`   | Checks work already done. Routed to a different model family on purpose. |
+
+They live in `.dsh/presets/<id>/`: `agent.cordis.yml` is the per-session
+composition, `preset.yml` the name and description the picker shows, and the
+directory name is the id. Selecting one writes the `agent-presets` settings
+namespace — there is no `/preset` command.
 
 **Skills.** Project skills are read from `.dsh/skills/<name>/SKILL.md`
 (`name` + `description` frontmatter required). This repo ships

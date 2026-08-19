@@ -1183,7 +1183,12 @@ function AppBody({ themeName, onThemeChange }: AppBodyProps) {
           searchable={true}
           onSelect={(id) => {
             setOverlay({ kind: "none" });
-            void harness.executeCommand(`/preset ${id}`).catch(reportError);
+            // A preset is selected by writing the agent-presets settings
+            // namespace, NOT by a command -- the harness registers no /preset.
+            void harness
+              .selectAgentPreset(id)
+              .then(() => notify(`Agent preset: ${id}`))
+              .catch(reportError);
           }}
         />
       )}

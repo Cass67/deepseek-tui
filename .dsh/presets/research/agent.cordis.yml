@@ -1,0 +1,9 @@
+# research -- the cheap lookup agent.
+#
+# Name the agent by the KIND OF WORK; the route below is the knob. Point this
+# at whichever model is cheapest/fastest for you and the rest still holds.
+- id: preset-model
+  name: "@deepseek-ai/dsh-agent-default-model"
+  config:
+    provider: local-llm-router
+    model: router

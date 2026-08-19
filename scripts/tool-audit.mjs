@@ -85,6 +85,11 @@ try {
     model: "router",
     maxTokens: 256,
   });
+  // MCP servers connect asynchronously and register their tools late, so
+  // give them a moment before the turn that captures the schema list.
+  await new Promise((r) =>
+    setTimeout(r, Number(process.env.TOOL_AUDIT_SETTLE_MS ?? 8000)),
+  );
   await client.prompt(`tool-audit-${Date.now()}`, [
     { type: "text", text: "hi" },
   ]);

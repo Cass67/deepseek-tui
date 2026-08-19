@@ -1,0 +1,2 @@
+name: verify
+description: Checks work already done - runs tests, re-reads diffs, disagrees out loud.
