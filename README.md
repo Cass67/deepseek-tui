@@ -60,11 +60,14 @@ llm-pi-ai:
       baseURL: http://my-box:3200/v1
 ```
 
+Every configurable knob, which file owns it, and a complete annotated
+`providers.yaml` are in [docs/configuration.md](docs/configuration.md).
+
 ## Providers
 
 `Ctrl+P` and `/provider` expose 38 routes (37 installed catalog routes plus the configured local router), including ordinary OpenAI API access and OpenAI Codex subscription access as separate routes. Routes inherit the provider runtime's native endpoint, model catalog, modality metadata, reasoning levels, environment credential discovery, API-key setup, and OAuth/subscription login methods.
 
-Selecting a provider opens its action page. Choose API-key setup to enter provider credentials in a masked field, or choose a provider subscription method to open its validated HTTP(S) authorization/device link and complete the callback or manual challenge. OpenAI uses an ordinary `OPENAI_API_KEY`; OpenAI Codex uses ChatGPT Plus/Pro OAuth. Credentials are stored in `${XDG_CONFIG_HOME:-~/.config}/deepseek-tui/auth.json` with an owner-private directory/file and never enter chat text, session history, or clipboard output. `Disconnect` removes the stored provider credential. Environment credentials shown in `.env.example` remain supported and are never copied into the store.
+Selecting a provider opens its action page. Choose API-key setup to enter provider credentials in a masked field, or choose a provider subscription method to open its validated HTTP(S) authorization/device link and complete the callback or manual challenge. OpenAI uses an ordinary `OPENAI_API_KEY`; OpenAI Codex uses ChatGPT Plus/Pro OAuth. Credentials are stored in `${DSH_HOME:-~/.dsh}/.credentials.yaml` with an owner-private directory/file — the store is refused outright if group or other permission bits are set — and never enter chat text, session history, or clipboard output. `Disconnect` removes the stored provider credential. Environment credentials shown in `.env.example` remain supported and are never copied into the store.
 
 Like OpenCode, catalog configuration stays separate from credentials. Custom providers and overrides live in `${XDG_CONFIG_HOME:-~/.config}/deepseek-tui/providers.yaml` and hot-reload through Harness settings:
 
@@ -187,7 +190,9 @@ boot rather than at startup.
 `description` frontmatter required. This repo ships `mount-harness-plugin`.
 
 **Hooks.** Claude-Code format from `<workspace>/.claude/settings.json`, Codex
-format from `$CODEX_HOME/config.toml`. A missing file registers no handlers.
+format from `$CODEX_HOME/config.toml`. A missing file registers no handlers. A
+`PreToolUse` hook can deny a call outright — see
+[docs/configuration.md](docs/configuration.md#hooks).
 
 ## Agent presets
 
