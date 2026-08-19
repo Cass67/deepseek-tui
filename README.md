@@ -41,15 +41,28 @@ The launcher preserves its caller's working directory as the agent workspace.
 
 ### Environment
 
-| Variable                     | Effect                                                                |
-| ---------------------------- | --------------------------------------------------------------------- |
-| `DSH_PROVIDER` / `DSH_MODEL` | Pin the route. Overrides the remembered one.                          |
-| `DSH_MAX_TOKENS`             | Output cap per turn. Defaults to `16384`; some routes allow far more. |
-| `DSH_CWD`                    | Agent workspace. Defaults to the launcher's cwd.                      |
-| `CONTEXT7_API_KEY`           | Raises context7 rate limits. Optional.                                |
+| Variable                     | Effect                                                                             |
+| ---------------------------- | ---------------------------------------------------------------------------------- |
+| `DSH_PROVIDER` / `DSH_MODEL` | Pin the route. Overrides the remembered one.                                       |
+| `DSH_MAX_TOKENS`             | Output cap per turn. Defaults to `16384`; some routes allow far more.              |
+| `DSH_CWD`                    | Agent workspace. Defaults to the launcher's cwd.                                   |
+| `LOCAL_LLM_BASE_URL`         | Endpoint for the `local-llm-router` route. Defaults to `http://localhost:3200/v1`. |
+| `CONTEXT7_API_KEY`           | Raises context7 rate limits. Optional.                                             |
 
 Without `DSH_PROVIDER`/`DSH_MODEL`, a new session resumes the **last route you
 selected**, persisted in the `agent-default-model` settings namespace.
+
+A host name local to one network belongs in your own config, not in this repo.
+Set `LOCAL_LLM_BASE_URL`, or override the route per machine in
+`${XDG_CONFIG_HOME:-~/.config}/deepseek-tui/providers.yaml` — settings there win
+over `cordis.yml`:
+
+```yaml
+llm-pi-ai:
+  providers:
+    local-llm-router:
+      baseURL: http://my-box:3200/v1
+```
 
 ## Providers
 
