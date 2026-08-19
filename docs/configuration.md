@@ -48,7 +48,7 @@ deployment sharing the same home.
 | `DSH_CORDIS_CONFIG`                              | `<repo>/cordis.yml`                                         | Composition file to load                                                     |
 | `DSH_HARNESS_BIN`                                | resolved from the harness checkout                          | JSON-RPC server entry point                                                  |
 | `DSH_HARNESS_PATH`                               | `../deepseek-harness`                                       | Harness checkout (`bin/deepseek-tui`, `scripts/install.mjs`)                 |
-| `DSH_HARNESS_REPO` / `DSH_HARNESS_REF`           | upstream / `v0.1.0-l2`                                      | What `scripts/install.mjs` clones                                            |
+| `DSH_HARNESS_REPO` / `DSH_HARNESS_REF`           | upstream / `v0.1.0-rc.8-l2`                                 | What `scripts/install.mjs` clones                                            |
 | `DEEPSEEK_TUI_CONFIG`                            | `${XDG_CONFIG_HOME:-~/.config}/deepseek-tui/providers.yaml` | Settings file path                                                           |
 | `LOCAL_LLM_BASE_URL`                             | `http://localhost:3200/v1`                                  | Endpoint for the `local-llm-router` route                                    |
 | `LOCAL_LLM_API_KEY`                              | `dummy-local-llm`                                           | Bearer sent to that route                                                    |

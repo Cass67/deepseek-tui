@@ -226,7 +226,7 @@ node scripts/preflight.mjs         # does the harness answer what this app calls
 ```
 
 Point them elsewhere with `DSH_HARNESS_PATH` (default `../deepseek-harness`),
-`DSH_HARNESS_REPO` or `DSH_HARNESS_REF` (default the `v0.1.0-l2` tag).
+`DSH_HARNESS_REPO` or `DSH_HARNESS_REF` (default the `v0.1.0-rc.8-l2` tag).
 
 Against upstream harness the app starts and then fails as soon as anything
 reads settings — the settings overlay, both pickers, and last-model-restore.

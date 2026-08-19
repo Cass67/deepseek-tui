@@ -25,7 +25,7 @@ const REPO =
  * A TAG, not a branch: a branch keeps moving, so two people running this on
  * different days would get different harness code with nothing to point at.
  */
-const REF = process.env.DSH_HARNESS_REF ?? "v0.1.0-l2";
+const REF = process.env.DSH_HARNESS_REF ?? "v0.1.0-rc.8-l2";
 /** The commit that adds the L2 runtime methods this client calls. */
 const REQUIRED_COMMIT = "f5afaacf40";
 const CHECK_ONLY = process.argv.includes("--check");
