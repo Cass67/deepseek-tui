@@ -73,6 +73,7 @@ export function StatusBar({
       style={{
         flexDirection: "row",
         width: "100%",
+        flexShrink: 0,
         paddingX: 2,
         paddingY: 1,
         backgroundColor: theme.background,

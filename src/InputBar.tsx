@@ -260,7 +260,10 @@ export function InputBar({
   return (
     // The queue notice sits OUTSIDE the bordered composer: inside, it shares a
     // row with what you are typing and overlaps it.
-    <box visible={visible} style={{ flexDirection: "column", width: "100%" }}>
+    <box
+      visible={visible}
+      style={{ flexDirection: "column", width: "100%", flexShrink: 0 }}
+    >
       {queuedPromptCount > 0 && (
         <text key="queued-prompts" fg={theme.warning} style={{ paddingX: 1 }}>
           ◌ {queuedPromptCount} queued
@@ -270,6 +273,10 @@ export function InputBar({
         style={{
           flexDirection: "column",
           width: "100%",
+          // Without this the chat scrollbox's content height wins the flex
+          // negotiation and squeezes the composer to zero rows: the textarea
+          // keeps focus and keystrokes, but nothing is drawn.
+          flexShrink: 0,
           height:
             suggestions.length > 0
               ? 4 +
