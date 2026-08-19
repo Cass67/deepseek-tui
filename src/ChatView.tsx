@@ -8,9 +8,14 @@ import type { ChatMessage } from "./types.ts";
 interface ChatViewProps {
   messages: ChatMessage[];
   streamingText: string;
+  showReasoning: boolean;
 }
 
-export function ChatView({ messages, streamingText }: ChatViewProps) {
+export function ChatView({
+  messages,
+  streamingText,
+  showReasoning,
+}: ChatViewProps) {
   const results = useMemo(
     () =>
       new Map(
@@ -66,6 +71,7 @@ export function ChatView({ messages, streamingText }: ChatViewProps) {
             key={message.id}
             message={message}
             streamingContent={isStreamingAssistant ? streamingText : undefined}
+            showReasoning={showReasoning}
           />
         );
       })}

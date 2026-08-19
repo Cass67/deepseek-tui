@@ -10,6 +10,7 @@ interface SettingsOverlayProps {
   getSettings: () => Promise<SettingsGetResult>;
   model: string;
   reasoning: string;
+  showReasoning: boolean;
   themeName: string;
   session: string;
 }
@@ -34,6 +35,7 @@ export function SettingsOverlay({
   getSettings,
   model,
   reasoning,
+  showReasoning,
   themeName,
   session,
 }: SettingsOverlayProps) {
@@ -61,6 +63,7 @@ export function SettingsOverlay({
   const lines: string[] = [
     `Model:      ${model}`,
     `Reasoning:  ${reasoning}`,
+    `Thinking:   ${showReasoning ? "shown" : "hidden"} (/thinking)`,
     `Theme:      ${themeName}`,
     `Session:    ${session}`,
     "",

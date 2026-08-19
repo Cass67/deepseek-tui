@@ -18,6 +18,7 @@ export type LocalCommandName =
   | "copy"
   | "shell"
   | "theme"
+  | "thinking"
   | "quit";
 
 export interface CommandDefinition {
@@ -95,6 +96,11 @@ export const COMMANDS: readonly CommandDefinition[] = [
     name: "theme",
     usage: "/theme [name]",
     description: "Choose a color theme",
+  },
+  {
+    name: "thinking",
+    usage: "/thinking [on|off]",
+    description: "Show or hide the model's reasoning in the transcript",
   },
   { name: "quit", usage: "/quit", description: "Shut down runtime and exit" },
 ];

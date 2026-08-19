@@ -188,6 +188,12 @@ export const UNSURFACED_EVENT_TYPES: ReadonlySet<string> = new Set([
   // call it dispatches, so logging both would double every entry.
   "tool/code-dispatch",
   "tool/code-dispatch-start",
+  // Experimental agent-team parallelism: no aggregate team surface in this
+  // chat TUI, so each member/task lifecycle surrounds its own slot.
+  "team/member",
+  "team/task",
+  "team/message/queued",
+  "team/message/delivered",
 ]);
 
 /** Describe current model/agent work from durable lifecycle events. */
@@ -423,6 +429,23 @@ export function deliverableForToolCall(
   }
 }
 
+/** Append an empty assistant message and return its id. */
+function openAssistantMessage(
+  messages: ChatMessage[],
+  data: Record<string, unknown>,
+): string {
+  const id = nextId();
+  messages.push({
+    id,
+    role: "assistant",
+    content: "",
+    turn: data.turn as number,
+    step: data.step as number,
+    timestamp: Date.now(),
+  });
+  return id;
+}
+
 /** Process one session event into the mutable message list. */
 export function processEvent(
   event: Record<string, unknown>,
@@ -480,20 +503,33 @@ export function processEvent(
           ? (chunk.text as string | undefined)
           : undefined;
       if (text) {
-        let assistantId = ctx.assistantId;
-        if (!assistantId) {
-          assistantId = nextId();
-          messages.push({
-            id: assistantId,
-            role: "assistant",
-            content: "",
-            turn: data.turn as number,
-            step: data.step as number,
-            timestamp: Date.now(),
-          });
-        }
+        const assistantId =
+          ctx.assistantId ?? openAssistantMessage(messages, data);
         return {
           streamingText: ctx.streamingText + text,
+          assistantId,
+          planModeActive: ctx.planModeActive,
+        };
+      }
+      const thought =
+        chunk?.type === "reasoning-delta"
+          ? (chunk.text as string | undefined)
+          : undefined;
+      if (thought) {
+        const assistantId =
+          ctx.assistantId ?? openAssistantMessage(messages, data);
+        // Replace rather than mutate: the memoized bubble re-renders on identity.
+        const index = messages.findIndex(
+          (candidate) => candidate.id === assistantId,
+        );
+        const msg = messages[index];
+        if (msg)
+          messages[index] = {
+            ...msg,
+            reasoning: (msg.reasoning ?? "") + thought,
+          };
+        return {
+          streamingText: ctx.streamingText,
           assistantId,
           planModeActive: ctx.planModeActive,
         };

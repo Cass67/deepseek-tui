@@ -19,7 +19,9 @@ any time.
 
 It uses [Cass67/deepseek-harness](https://github.com/Cass67/deepseek-harness)
 rather than upstream, because the TUI needs settings and skills methods that
-upstream does not have yet.
+upstream does not have yet. The fork's `main` tracks upstream through
+`v0.1.0-rc.8` and carries those L2 runtime methods on top — durable image
+attachments, interactive session controls, and `session/resume`.
 
 The TUI itself is a thin client: it runs the harness as a subprocess over stdio
 JSON-RPC and renders the session event stream. Built with Bun, React and
@@ -110,11 +112,12 @@ A catalog route can be overridden with only changed fields; omit `models` to ret
 | `/copy [last\|all]`       | Copy latest user/assistant message or full conversation transcript, including current streamed text. |
 | `/shell <command>`        | Run one owned, bounded local shell process group outside model history.                              |
 | `/theme [name]`           | Open the 23-theme picker or select and remember an exact theme id.                                   |
+| `/thinking [on\|off]`     | Show or hide the model's reasoning above each answer; remembered across restarts. Off by default.    |
 | `/permission`             | Switch the sandbox + approval preset (runtime-discovered from the harness).                          |
 | `/help`                   | Show local and runtime-discovered commands.                                                          |
 | `/quit`                   | Shut down the Harness runtime and exit.                                                              |
 
-Unknown slash commands are offered to the Harness command registry and never sent to the model as ordinary messages. Live status uses an animated activity label for model waits, reasoning, tool execution, and context compaction; elapsed seconds remain visible during silent operations. Automatic compaction uses `qwen3.6-flash` while conversation turns retain the selected route, reducing checkpoint latency without changing chat-model selection. Reasoning stays out of final-answer Markdown, completed tool output is collapsed, and fenced Go, Python, Bash, Rust, JavaScript, and TypeScript blocks use Tree-sitter highlighting. A leading `!command` is shorthand for `/shell command`; only one shell command runs at once. Shell commands run in the caller workspace with a 120-second timeout and bounded output, never enter model-visible history, and own a detached process group cleaned up with TERM then KILL on cancellation or shutdown. Clipboard notices distinguish verified host writes from unverified terminal OSC52 attempts.
+Unknown slash commands are offered to the Harness command registry and never sent to the model as ordinary messages. Live status uses an animated activity label for model waits, reasoning, tool execution, and context compaction; elapsed seconds remain visible during silent operations. Automatic compaction uses `qwen3.6-flash` while conversation turns retain the selected route, reducing checkpoint latency without changing chat-model selection. Reasoning stays out of final-answer Markdown — `/thinking on` renders it as a dimmed block above the answer instead — completed tool output is collapsed, and fenced Go, Python, Bash, Rust, JavaScript, and TypeScript blocks use Tree-sitter highlighting. A leading `!command` is shorthand for `/shell command`; only one shell command runs at once. Shell commands run in the caller workspace with a 120-second timeout and bounded output, never enter model-visible history, and own a detached process group cleaned up with TERM then KILL on cancellation or shutdown. Clipboard notices distinguish verified host writes from unverified terminal OSC52 attempts.
 
 Built-in themes: Tokyo Night, Dracula, Nord, Catppuccin Mocha/Latte, Gruvbox Dark/Light, Solarized Dark/Light, One Dark, Monokai, Rosé Pine, Everforest, Kanagawa, Ayu Dark, GitHub Dark/Light, Ocean, Synthwave, Matrix, Sepia, Minimal Light, and High Contrast.
 

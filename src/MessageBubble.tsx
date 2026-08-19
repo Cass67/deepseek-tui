@@ -10,6 +10,7 @@ import type { ChatMessage } from "./types.ts";
 interface MessageBubbleProps {
   message: ChatMessage;
   streamingContent?: string;
+  showReasoning?: boolean;
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -21,6 +22,7 @@ const ROLE_LABELS: Record<string, string> = {
 export const MessageBubble = memo(function MessageBubble({
   message,
   streamingContent,
+  showReasoning = false,
 }: MessageBubbleProps) {
   const theme = useTheme();
   const markdownStyle = useSyntaxStyle();
@@ -124,7 +126,8 @@ export const MessageBubble = memo(function MessageBubble({
 
   // Assistant messages: markdown with streaming support
   const content = streamingContent ?? message.content;
-  if (!content) return null;
+  const reasoning = showReasoning ? message.reasoning : undefined;
+  if (!content && !reasoning) return null;
 
   return (
     <box
@@ -138,17 +141,35 @@ export const MessageBubble = memo(function MessageBubble({
       <text fg={color} attributes={TextAttributes.BOLD}>
         {label}
       </text>
-      <markdown
-        content={content}
-        syntaxStyle={markdownStyle}
-        conceal={true}
-        concealCode={false}
-        streaming={!!streamingContent}
-        internalBlockMode="top-level"
-        tableOptions={{ borderColor: theme.border }}
-        fg={theme.text}
-        bg={theme.background}
-      />
+      {reasoning && (
+        <box style={{ flexDirection: "column", width: "100%" }}>
+          <text fg={theme.textMuted} attributes={TextAttributes.BOLD}>
+            ✻ thinking
+          </text>
+          {reasoning.split("\n").map((line, index) => (
+            <text
+              key={index}
+              fg={theme.textMuted}
+              attributes={TextAttributes.ITALIC}
+            >
+              {line}
+            </text>
+          ))}
+        </box>
+      )}
+      {content && (
+        <markdown
+          content={content}
+          syntaxStyle={markdownStyle}
+          conceal={true}
+          concealCode={false}
+          streaming={!!streamingContent}
+          internalBlockMode="top-level"
+          tableOptions={{ borderColor: theme.border }}
+          fg={theme.text}
+          bg={theme.background}
+        />
+      )}
       {message.usage && (
         <text fg={theme.textMuted}>
           tokens: {message.usage.inputTokens ?? 0} in /{" "}

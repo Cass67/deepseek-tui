@@ -33,7 +33,12 @@ import { ActivityPanels } from "./ActivityPanels.tsx";
 import { FeedbackPanel } from "./FeedbackPanel.tsx";
 import { GoalPanel } from "./GoalPanel.tsx";
 import { WorkflowPanel } from "./WorkflowPanel.tsx";
-import { loadThemePreference, saveThemePreference } from "./preferences.ts";
+import {
+  loadShowReasoningPreference,
+  loadThemePreference,
+  saveShowReasoningPreference,
+  saveThemePreference,
+} from "./preferences.ts";
 import { SearchInput } from "./SearchInput.tsx";
 import { formatShellResult, ShellRunner } from "./shell.ts";
 import { StatusBar } from "./StatusBar.tsx";
@@ -692,6 +697,27 @@ function AppBody({ themeName, onThemeChange }: AppBodyProps) {
     }
   }, [reportError, shellRunner]);
 
+  const [showReasoning, setShowReasoning] = useState(
+    loadShowReasoningPreference,
+  );
+
+  const toggleReasoning = useCallback(
+    (args: string) => {
+      const next =
+        args === "on" ? true : args === "off" ? false : !showReasoning;
+      setShowReasoning(next);
+      try {
+        saveShowReasoningPreference(next);
+        notify(`Thinking: ${next ? "shown" : "hidden"}`);
+      } catch (error) {
+        notify(
+          `Thinking ${next ? "shown" : "hidden"}, but preference could not be saved: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    },
+    [notify, showReasoning],
+  );
+
   const selectTheme = useCallback(
     (name: string) => {
       const selected = THEMES.find((candidate) => candidate.id === name);
@@ -797,6 +823,9 @@ function AppBody({ themeName, onThemeChange }: AppBodyProps) {
             if (args) selectTheme(args);
             else setOverlay({ kind: "themes" });
             return;
+          case "thinking":
+            toggleReasoning(args);
+            return;
           case "quit":
             await quit();
             return;
@@ -829,6 +858,7 @@ function AppBody({ themeName, onThemeChange }: AppBodyProps) {
       showSearch,
       showStatus,
       shellRunner,
+      toggleReasoning,
       state.provider,
     ],
   );
@@ -1053,6 +1083,7 @@ function AppBody({ themeName, onThemeChange }: AppBodyProps) {
           <ChatView
             messages={state.messages}
             streamingText={state.currentStreamingText}
+            showReasoning={showReasoning}
           />
         </box>
       )}
@@ -1307,6 +1338,7 @@ function AppBody({ themeName, onThemeChange }: AppBodyProps) {
           getSettings={harness.getSettings}
           model={`${state.provider}/${state.model}`}
           reasoning={state.reasoningEffort ?? "default"}
+          showReasoning={showReasoning}
           themeName={themeName}
           session={state.sessionId.slice(0, 12) + "…"}
         />

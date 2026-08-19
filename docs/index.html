@@ -1,563 +1,1298 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>deepseek-tui — feature showcase</title>
-<style>
-  :root {
-    --bg: #0b0e14;
-    --bg-soft: #11151f;
-    --panel: #151b28;
-    --panel-2: #1a2130;
-    --border: #26304a;
-    --border-soft: #1e2740;
-    --text: #e6ebf5;
-    --muted: #9aa7c4;
-    --faint: #6b7899;
-    --accent: #5eead4;
-    --accent-2: #818cf8;
-    --accent-3: #f0abfc;
-    --warn: #fbbf24;
-    --ok: #34d399;
-    --err: #f87171;
-    --mono: "SFMono-Regular", ui-monospace, "JetBrains Mono", "Fira Code", Menlo, Consolas, monospace;
-    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Helvetica, Arial, sans-serif;
-    --radius: 14px;
-    --maxw: 1120px;
-  }
-  * { box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
-  body {
-    margin: 0;
-    background:
-      radial-gradient(1200px 600px at 80% -10%, rgba(129,140,248,0.14), transparent 60%),
-      radial-gradient(900px 500px at 0% 0%, rgba(94,234,212,0.10), transparent 55%),
-      var(--bg);
-    color: var(--text);
-    font-family: var(--sans);
-    line-height: 1.6;
-    -webkit-font-smoothing: antialiased;
-  }
-  a { color: var(--accent); text-decoration: none; }
-  a:hover { text-decoration: underline; }
-  code, .mono { font-family: var(--mono); font-size: 0.92em; }
-  code {
-    background: rgba(129,140,248,0.12);
-    border: 1px solid var(--border-soft);
-    padding: 0.1em 0.4em;
-    border-radius: 6px;
-    color: #c7d2fe;
-  }
-  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>deepseek-tui — feature showcase</title>
+    <style>
+      :root {
+        --bg: #0b0e14;
+        --bg-soft: #11151f;
+        --panel: #151b28;
+        --panel-2: #1a2130;
+        --border: #26304a;
+        --border-soft: #1e2740;
+        --text: #e6ebf5;
+        --muted: #9aa7c4;
+        --faint: #6b7899;
+        --accent: #5eead4;
+        --accent-2: #818cf8;
+        --accent-3: #f0abfc;
+        --warn: #fbbf24;
+        --ok: #34d399;
+        --err: #f87171;
+        --mono:
+          "SFMono-Regular", ui-monospace, "JetBrains Mono", "Fira Code", Menlo,
+          Consolas, monospace;
+        --sans:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter,
+          Helvetica, Arial, sans-serif;
+        --radius: 14px;
+        --maxw: 1120px;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        margin: 0;
+        background:
+          radial-gradient(
+            1200px 600px at 80% -10%,
+            rgba(129, 140, 248, 0.14),
+            transparent 60%
+          ),
+          radial-gradient(
+            900px 500px at 0% 0%,
+            rgba(94, 234, 212, 0.1),
+            transparent 55%
+          ),
+          var(--bg);
+        color: var(--text);
+        font-family: var(--sans);
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+      }
+      a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      code,
+      .mono {
+        font-family: var(--mono);
+        font-size: 0.92em;
+      }
+      code {
+        background: rgba(129, 140, 248, 0.12);
+        border: 1px solid var(--border-soft);
+        padding: 0.1em 0.4em;
+        border-radius: 6px;
+        color: #c7d2fe;
+      }
+      .wrap {
+        max-width: var(--maxw);
+        margin: 0 auto;
+        padding: 0 24px;
+      }
 
-  /* ---------- top nav ---------- */
-  nav {
-    position: sticky; top: 0; z-index: 50;
-    backdrop-filter: blur(12px);
-    background: rgba(11,14,20,0.72);
-    border-bottom: 1px solid var(--border-soft);
-  }
-  nav .wrap { display: flex; align-items: center; gap: 18px; height: 56px; }
-  nav .brand { font-weight: 700; letter-spacing: 0.2px; display: flex; align-items: center; gap: 10px; }
-  nav .brand .dot { width: 10px; height: 10px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 0 12px rgba(94,234,212,0.6); }
-  nav .links { margin-left: auto; display: flex; gap: 4px; flex-wrap: wrap; }
-  nav .links a { color: var(--muted); font-size: 13.5px; padding: 6px 10px; border-radius: 8px; }
-  nav .links a:hover { color: var(--text); background: var(--panel); text-decoration: none; }
+      /* ---------- top nav ---------- */
+      nav {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        backdrop-filter: blur(12px);
+        background: rgba(11, 14, 20, 0.72);
+        border-bottom: 1px solid var(--border-soft);
+      }
+      nav .wrap {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        height: 56px;
+      }
+      nav .brand {
+        font-weight: 700;
+        letter-spacing: 0.2px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      nav .brand .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        box-shadow: 0 0 12px rgba(94, 234, 212, 0.6);
+      }
+      nav .links {
+        margin-left: auto;
+        display: flex;
+        gap: 4px;
+        flex-wrap: wrap;
+      }
+      nav .links a {
+        color: var(--muted);
+        font-size: 13.5px;
+        padding: 6px 10px;
+        border-radius: 8px;
+      }
+      nav .links a:hover {
+        color: var(--text);
+        background: var(--panel);
+        text-decoration: none;
+      }
 
-  /* ---------- hero ---------- */
-  header.hero { padding: 72px 0 40px; }
-  .kicker {
-    display: inline-flex; align-items: center; gap: 8px;
-    font-size: 12.5px; letter-spacing: 0.14em; text-transform: uppercase;
-    color: var(--accent); border: 1px solid var(--border);
-    background: var(--panel); padding: 6px 12px; border-radius: 999px;
-  }
-  h1 {
-    font-size: clamp(38px, 6vw, 64px);
-    line-height: 1.05; margin: 22px 0 14px; letter-spacing: -0.02em;
-    background: linear-gradient(120deg, #fff 10%, #c7d2fe 45%, #5eead4 90%);
-    -webkit-background-clip: text; background-clip: text; color: transparent;
-  }
-  .lede { font-size: 19px; color: var(--muted); max-width: 720px; }
-  .badges { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
-  .badge {
-    font-size: 13px; color: var(--muted);
-    border: 1px solid var(--border); background: var(--panel);
-    padding: 7px 12px; border-radius: 10px; display: inline-flex; gap: 8px; align-items: center;
-  }
-  .badge b { color: var(--text); font-weight: 600; }
-  .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 34px; }
-  .stat {
-    background: linear-gradient(180deg, var(--panel), var(--bg-soft));
-    border: 1px solid var(--border); border-radius: var(--radius); padding: 18px;
-  }
-  .stat .n { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; }
-  .stat .l { font-size: 13px; color: var(--faint); margin-top: 2px; }
-  .stat .n .u { font-size: 15px; color: var(--muted); font-weight: 500; }
+      /* ---------- hero ---------- */
+      header.hero {
+        padding: 72px 0 40px;
+      }
+      .kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12.5px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--accent);
+        border: 1px solid var(--border);
+        background: var(--panel);
+        padding: 6px 12px;
+        border-radius: 999px;
+      }
+      h1 {
+        font-size: clamp(38px, 6vw, 64px);
+        line-height: 1.05;
+        margin: 22px 0 14px;
+        letter-spacing: -0.02em;
+        background: linear-gradient(120deg, #fff 10%, #c7d2fe 45%, #5eead4 90%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .lede {
+        font-size: 19px;
+        color: var(--muted);
+        max-width: 720px;
+      }
+      .badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 26px;
+      }
+      .badge {
+        font-size: 13px;
+        color: var(--muted);
+        border: 1px solid var(--border);
+        background: var(--panel);
+        padding: 7px 12px;
+        border-radius: 10px;
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .badge b {
+        color: var(--text);
+        font-weight: 600;
+      }
+      .stat-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+        margin-top: 34px;
+      }
+      .stat {
+        background: linear-gradient(180deg, var(--panel), var(--bg-soft));
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 18px;
+      }
+      .stat .n {
+        font-size: 30px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+      .stat .l {
+        font-size: 13px;
+        color: var(--faint);
+        margin-top: 2px;
+      }
+      .stat .n .u {
+        font-size: 15px;
+        color: var(--muted);
+        font-weight: 500;
+      }
 
-  /* ---------- sections ---------- */
-  section { padding: 46px 0; border-top: 1px solid var(--border-soft); }
-  .sec-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 8px; }
-  .sec-head .idx { font-family: var(--mono); color: var(--accent); font-size: 14px; }
-  h2 { font-size: 28px; margin: 0; letter-spacing: -0.01em; }
-  .sec-sub { color: var(--muted); max-width: 760px; margin: 0 0 26px; }
+      /* ---------- sections ---------- */
+      section {
+        padding: 46px 0;
+        border-top: 1px solid var(--border-soft);
+      }
+      .sec-head {
+        display: flex;
+        align-items: baseline;
+        gap: 14px;
+        margin-bottom: 8px;
+      }
+      .sec-head .idx {
+        font-family: var(--mono);
+        color: var(--accent);
+        font-size: 14px;
+      }
+      h2 {
+        font-size: 28px;
+        margin: 0;
+        letter-spacing: -0.01em;
+      }
+      .sec-sub {
+        color: var(--muted);
+        max-width: 760px;
+        margin: 0 0 26px;
+      }
 
-  /* ---------- architecture ---------- */
-  .arch {
-    display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; gap: 0;
-    align-items: stretch; margin-top: 8px;
-  }
-  .arch .node {
-    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
-    padding: 18px; display: flex; flex-direction: column; gap: 6px;
-  }
-  .arch .node h4 { margin: 0; font-size: 15px; }
-  .arch .node p { margin: 0; font-size: 12.5px; color: var(--faint); }
-  .arch .node .tag { font-family: var(--mono); font-size: 11px; color: var(--accent); }
-  .arch .arrow {
-    display: flex; align-items: center; justify-content: center;
-    color: var(--faint); font-family: var(--mono); font-size: 12px; padding: 0 10px;
-    text-align: center; line-height: 1.3;
-  }
-  .arch .arrow .line { color: var(--accent-2); font-size: 20px; }
-  @media (max-width: 860px) {
-    .arch { grid-template-columns: 1fr; }
-    .arch .arrow { transform: rotate(90deg); padding: 8px 0; }
-  }
+      /* ---------- architecture ---------- */
+      .arch {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr auto 1fr;
+        gap: 0;
+        align-items: stretch;
+        margin-top: 8px;
+      }
+      .arch .node {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .arch .node h4 {
+        margin: 0;
+        font-size: 15px;
+      }
+      .arch .node p {
+        margin: 0;
+        font-size: 12.5px;
+        color: var(--faint);
+      }
+      .arch .node .tag {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--accent);
+      }
+      .arch .arrow {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--faint);
+        font-family: var(--mono);
+        font-size: 12px;
+        padding: 0 10px;
+        text-align: center;
+        line-height: 1.3;
+      }
+      .arch .arrow .line {
+        color: var(--accent-2);
+        font-size: 20px;
+      }
+      @media (max-width: 860px) {
+        .arch {
+          grid-template-columns: 1fr;
+        }
+        .arch .arrow {
+          transform: rotate(90deg);
+          padding: 8px 0;
+        }
+      }
 
-  /* ---------- feature grid ---------- */
-  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-  @media (max-width: 900px) { .grid { grid-template-columns: repeat(2, 1fr); } }
-  @media (max-width: 620px) { .grid { grid-template-columns: 1fr; } }
-  .card {
-    background: linear-gradient(180deg, var(--panel), var(--bg-soft));
-    border: 1px solid var(--border); border-radius: var(--radius);
-    padding: 20px; transition: transform .15s ease, border-color .15s ease;
-  }
-  .card:hover { transform: translateY(-3px); border-color: #33406a; }
-  .card .ico { font-size: 22px; }
-  .card h3 { margin: 12px 0 6px; font-size: 16.5px; }
-  .card p { margin: 0; font-size: 13.5px; color: var(--muted); }
-  .card .keys { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px; }
-  kbd {
-    font-family: var(--mono); font-size: 11.5px; color: var(--text);
-    background: var(--panel-2); border: 1px solid var(--border);
-    border-bottom-width: 2px; border-radius: 6px; padding: 2px 7px;
-  }
+      /* ---------- feature grid ---------- */
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+      }
+      @media (max-width: 900px) {
+        .grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+      @media (max-width: 620px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .card {
+        background: linear-gradient(180deg, var(--panel), var(--bg-soft));
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 20px;
+        transition:
+          transform 0.15s ease,
+          border-color 0.15s ease;
+      }
+      .card:hover {
+        transform: translateY(-3px);
+        border-color: #33406a;
+      }
+      .card .ico {
+        font-size: 22px;
+      }
+      .card h3 {
+        margin: 12px 0 6px;
+        font-size: 16.5px;
+      }
+      .card p {
+        margin: 0;
+        font-size: 13.5px;
+        color: var(--muted);
+      }
+      .card .keys {
+        margin-top: 12px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      kbd {
+        font-family: var(--mono);
+        font-size: 11.5px;
+        color: var(--text);
+        background: var(--panel-2);
+        border: 1px solid var(--border);
+        border-bottom-width: 2px;
+        border-radius: 6px;
+        padding: 2px 7px;
+      }
 
-  /* ---------- tables ---------- */
-  .tbl-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); }
-  table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  thead th {
-    text-align: left; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase;
-    color: var(--faint); padding: 12px 16px; background: var(--panel);
-    border-bottom: 1px solid var(--border); position: sticky; top: 0;
-  }
-  tbody td { padding: 11px 16px; border-bottom: 1px solid var(--border-soft); vertical-align: top; }
-  tbody tr:last-child td { border-bottom: none; }
-  tbody tr:hover { background: rgba(129,140,248,0.04); }
-  td .cmd { font-family: var(--mono); color: #c7d2fe; white-space: nowrap; }
-  td .key { font-family: var(--mono); color: var(--accent); white-space: nowrap; }
-  .pill {
-    display: inline-block; font-size: 11px; font-family: var(--mono);
-    padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border);
-    color: var(--muted); background: var(--panel-2);
-  }
-  .pill.ok { color: var(--ok); border-color: rgba(52,211,153,0.4); }
-  .pill.warn { color: var(--warn); border-color: rgba(251,191,36,0.4); }
+      /* ---------- tables ---------- */
+      .tbl-wrap {
+        overflow-x: auto;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+      thead th {
+        text-align: left;
+        font-size: 12px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--faint);
+        padding: 12px 16px;
+        background: var(--panel);
+        border-bottom: 1px solid var(--border);
+        position: sticky;
+        top: 0;
+      }
+      tbody td {
+        padding: 11px 16px;
+        border-bottom: 1px solid var(--border-soft);
+        vertical-align: top;
+      }
+      tbody tr:last-child td {
+        border-bottom: none;
+      }
+      tbody tr:hover {
+        background: rgba(129, 140, 248, 0.04);
+      }
+      td .cmd {
+        font-family: var(--mono);
+        color: #c7d2fe;
+        white-space: nowrap;
+      }
+      td .key {
+        font-family: var(--mono);
+        color: var(--accent);
+        white-space: nowrap;
+      }
+      .pill {
+        display: inline-block;
+        font-size: 11px;
+        font-family: var(--mono);
+        padding: 2px 8px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        color: var(--muted);
+        background: var(--panel-2);
+      }
+      .pill.ok {
+        color: var(--ok);
+        border-color: rgba(52, 211, 153, 0.4);
+      }
+      .pill.warn {
+        color: var(--warn);
+        border-color: rgba(251, 191, 36, 0.4);
+      }
 
-  /* ---------- two-col ---------- */
-  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  @media (max-width: 820px) { .two { grid-template-columns: 1fr; } }
-  .box { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
-  .box h3 { margin: 0 0 10px; font-size: 16px; }
-  .box ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 14px; }
-  .box li { margin: 6px 0; }
+      /* ---------- two-col ---------- */
+      .two {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+      @media (max-width: 820px) {
+        .two {
+          grid-template-columns: 1fr;
+        }
+      }
+      .box {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 20px;
+      }
+      .box h3 {
+        margin: 0 0 10px;
+        font-size: 16px;
+      }
+      .box ul {
+        margin: 0;
+        padding-left: 18px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .box li {
+        margin: 6px 0;
+      }
 
-  /* ---------- code block ---------- */
-  pre {
-    background: #0a0d13; border: 1px solid var(--border); border-radius: 12px;
-    padding: 16px 18px; overflow-x: auto; font-family: var(--mono); font-size: 13px;
-    line-height: 1.7; margin: 0;
-  }
-  pre .c { color: var(--faint); }
-  pre .p { color: var(--accent); }
-  pre .s { color: #f0abfc; }
+      /* ---------- code block ---------- */
+      pre {
+        background: #0a0d13;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px 18px;
+        overflow-x: auto;
+        font-family: var(--mono);
+        font-size: 13px;
+        line-height: 1.7;
+        margin: 0;
+      }
+      pre .c {
+        color: var(--faint);
+      }
+      pre .p {
+        color: var(--accent);
+      }
+      pre .s {
+        color: #f0abfc;
+      }
 
-  /* ---------- provider chips ---------- */
-  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
-  .chip {
-    font-size: 12.5px; font-family: var(--mono); color: var(--muted);
-    border: 1px solid var(--border); background: var(--panel);
-    padding: 5px 11px; border-radius: 999px;
-  }
-  .chip.local { color: var(--accent); border-color: rgba(94,234,212,0.4); }
+      /* ---------- provider chips ---------- */
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .chip {
+        font-size: 12.5px;
+        font-family: var(--mono);
+        color: var(--muted);
+        border: 1px solid var(--border);
+        background: var(--panel);
+        padding: 5px 11px;
+        border-radius: 999px;
+      }
+      .chip.local {
+        color: var(--accent);
+        border-color: rgba(94, 234, 212, 0.4);
+      }
 
-  /* ---------- footer ---------- */
-  footer { border-top: 1px solid var(--border-soft); padding: 40px 0 60px; color: var(--faint); font-size: 13.5px; }
-  footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+      /* ---------- footer ---------- */
+      footer {
+        border-top: 1px solid var(--border-soft);
+        padding: 40px 0 60px;
+        color: var(--faint);
+        font-size: 13.5px;
+      }
+      footer .wrap {
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
 
-  .note {
-    border-left: 3px solid var(--accent-2); background: rgba(129,140,248,0.06);
-    padding: 12px 16px; border-radius: 0 10px 10px 0; color: var(--muted); font-size: 14px;
-    margin: 18px 0;
-  }
-</style>
-</head>
-<body>
+      .note {
+        border-left: 3px solid var(--accent-2);
+        background: rgba(129, 140, 248, 0.06);
+        padding: 12px 16px;
+        border-radius: 0 10px 10px 0;
+        color: var(--muted);
+        font-size: 14px;
+        margin: 18px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <div class="wrap">
+        <div class="brand"><span class="dot"></span> deepseek-tui</div>
+        <div class="links">
+          <a href="#arch">Architecture</a>
+          <a href="#features">Features</a>
+          <a href="#keys">Keys</a>
+          <a href="#commands">Commands</a>
+          <a href="#tools">Tools</a>
+          <a href="#providers">Providers</a>
+          <a href="#setup">Setup</a>
+        </div>
+      </div>
+    </nav>
 
-<nav>
-  <div class="wrap">
-    <div class="brand"><span class="dot"></span> deepseek-tui</div>
-    <div class="links">
-      <a href="#arch">Architecture</a>
-      <a href="#features">Features</a>
-      <a href="#keys">Keys</a>
-      <a href="#commands">Commands</a>
-      <a href="#tools">Tools</a>
-      <a href="#providers">Providers</a>
-      <a href="#setup">Setup</a>
-    </div>
-  </div>
-</nav>
+    <header class="hero">
+      <div class="wrap">
+        <span class="kicker">Terminal client · DeepSeek Harness</span>
+        <h1>deepseek-tui</h1>
+        <p class="lede">
+          A terminal UI for the <b>DeepSeek Harness</b> (<code>dsh</code>). It
+          runs the harness as a subprocess over stdio JSON-RPC and renders the
+          live session event stream — a thin, fast client over a fully
+          plugin-composed agent runtime.
+        </p>
+        <div class="badges">
+          <span class="badge"><b>Bun</b> runtime</span>
+          <span class="badge"><b>React 19</b> UI</span>
+          <span class="badge"><b>OpenTUI</b> renderer</span>
+          <span class="badge"><b>Apache-2.0</b> license</span>
+          <span class="badge"><b>stdio JSON-RPC</b> transport</span>
+        </div>
+        <div class="stat-row">
+          <div class="stat">
+            <div class="n">47</div>
+            <div class="l">model-facing tools wired up</div>
+          </div>
+          <div class="stat">
+            <div class="n">38</div>
+            <div class="l">provider routes available</div>
+          </div>
+          <div class="stat">
+            <div class="n">23</div>
+            <div class="l">built-in themes</div>
+          </div>
+          <div class="stat">
+            <div class="n">84</div>
+            <div class="l">harness packages linked</div>
+          </div>
+        </div>
+      </div>
+    </header>
 
-<header class="hero">
-  <div class="wrap">
-    <span class="kicker">Terminal client · DeepSeek Harness</span>
-    <h1>deepseek-tui</h1>
-    <p class="lede">
-      A terminal UI for the <b>DeepSeek Harness</b> (<code>dsh</code>). It runs the harness as a
-      subprocess over stdio JSON-RPC and renders the live session event stream — a thin, fast
-      client over a fully plugin-composed agent runtime.
-    </p>
-    <div class="badges">
-      <span class="badge"><b>Bun</b> runtime</span>
-      <span class="badge"><b>React 19</b> UI</span>
-      <span class="badge"><b>OpenTUI</b> renderer</span>
-      <span class="badge"><b>Apache-2.0</b> license</span>
-      <span class="badge"><b>stdio JSON-RPC</b> transport</span>
-    </div>
-    <div class="stat-row">
-      <div class="stat"><div class="n">47</div><div class="l">model-facing tools wired up</div></div>
-      <div class="stat"><div class="n">38</div><div class="l">provider routes available</div></div>
-      <div class="stat"><div class="n">23</div><div class="l">built-in themes</div></div>
-      <div class="stat"><div class="n">84</div><div class="l">harness packages linked</div></div>
-    </div>
-  </div>
-</header>
+    <section id="arch">
+      <div class="wrap">
+        <div class="sec-head">
+          <span class="idx">01</span>
+          <h2>How it fits together</h2>
+        </div>
+        <p class="sec-sub">
+          The TUI owns no agent logic. It spawns the harness, talks to it over a
+          JSON-RPC channel on stdout, and turns the resulting event stream into
+          a terminal interface. Everything the agent can do is decided by the
+          harness composition in <code>cordis.yml</code>.
+        </p>
+        <div class="arch">
+          <div class="node">
+            <span class="tag">deepseek-tui</span>
+            <h4>The client (this repo)</h4>
+            <p>
+              React + OpenTUI. Renders chat, panels, pickers, overlays. Owns
+              keys, clipboard, themes, prompt queue.
+            </p>
+          </div>
+          <div class="arrow">
+            <div><span class="line">⇄</span><br />stdio<br />JSON-RPC</div>
+          </div>
+          <div class="node">
+            <span class="tag">deepseek-harness</span>
+            <h4>The runtime (dsh)</h4>
+            <p>
+              "Everything is a plugin." Composed from ~80
+              <code>dsh-*</code> packages via Cordis. Runs the model loop,
+              tools, sessions.
+            </p>
+          </div>
+          <div class="arrow">
+            <div><span class="line">→</span><br />ctx.*<br />seams</div>
+          </div>
+          <div class="node">
+            <span class="tag">plugins</span>
+            <h4>Capabilities</h4>
+            <p>
+              Files, shell, sandbox, subagents, web, LSP, MCP, goals, workflow,
+              schedule, presets, skills, hooks.
+            </p>
+          </div>
+        </div>
+        <div class="note">
+          It links <b>Cass67/deepseek-harness</b> rather than upstream, because
+          the TUI needs <code>settings</code> and <code>skills</code> methods
+          upstream does not expose. The fork's <code>main</code> tracks upstream
+          through <code>v0.1.0-rc.8</code> and carries those L2 runtime methods
+          on top. Point <code>DSH_HARNESS_PATH</code> elsewhere to change the
+          checkout.
+        </div>
+      </div>
+    </section>
 
-<section id="arch">
-  <div class="wrap">
-    <div class="sec-head"><span class="idx">01</span><h2>How it fits together</h2></div>
-    <p class="sec-sub">
-      The TUI owns no agent logic. It spawns the harness, talks to it over a JSON-RPC channel on
-      stdout, and turns the resulting event stream into a terminal interface. Everything the agent
-      can do is decided by the harness composition in <code>cordis.yml</code>.
-    </p>
-    <div class="arch">
-      <div class="node">
-        <span class="tag">deepseek-tui</span>
-        <h4>The client (this repo)</h4>
-        <p>React + OpenTUI. Renders chat, panels, pickers, overlays. Owns keys, clipboard, themes, prompt queue.</p>
+    <section id="features">
+      <div class="wrap">
+        <div class="sec-head">
+          <span class="idx">02</span>
+          <h2>What you can do from the TUI</h2>
+        </div>
+        <p class="sec-sub">
+          Every one of these is reachable live in the terminal — no config file
+          required. Pickers, overlays and panels appear on demand and pre-empt
+          each other sensibly.
+        </p>
+        <div class="grid">
+          <div class="card">
+            <div class="ico">🧭</div>
+            <h3>Provider &amp; model routing</h3>
+            <p>
+              Switch among 38 routes, fuzzy-search models across every
+              authenticated provider, and pick a reasoning level per model.
+            </p>
+            <div class="keys">
+              <kbd>Ctrl+P</kbd><kbd>Ctrl+L</kbd><kbd>Ctrl+T</kbd>
+            </div>
+          </div>
+          <div class="card">
+            <div class="ico">🔐</div>
+            <h3>Auth &amp; credentials</h3>
+            <p>
+              Masked API-key entry, or OAuth / subscription sign-in (e.g. OpenAI
+              Codex via ChatGPT Plus/Pro). Stored owner-private, never in chat.
+            </p>
+            <div class="keys"><kbd>/provider</kbd></div>
+          </div>
+          <div class="card">
+            <div class="ico">🖼️</div>
+            <h3>Image attachments</h3>
+            <p>
+              Queue PNG / JPEG / WebP / GIF for the next prompt via
+              <code>/attach</code> or by dragging a path into the composer.
+            </p>
+            <div class="keys"><kbd>/attach</kbd><kbd>/unattach</kbd></div>
+          </div>
+          <div class="card">
+            <div class="ico">🗂️</div>
+            <h3>Sessions</h3>
+            <p>
+              Browse durable sessions by title/time and resume an explicitly
+              selected one. History is read through the harness query API, never
+              parsed by hand.
+            </p>
+            <div class="keys"><kbd>Ctrl+R</kbd><kbd>/sessions</kbd></div>
+          </div>
+          <div class="card">
+            <div class="ico">🎯</div>
+            <h3>Goals &amp; planning</h3>
+            <p>
+              Long-running objectives with bounded rounds, plus a plan-mode
+              banner that gates implementation behind an approved plan.
+            </p>
+            <div class="keys"><kbd>GoalPanel</kbd><kbd>PlanBanner</kbd></div>
+          </div>
+          <div class="card">
+            <div class="ico">🤖</div>
+            <h3>Delegation &amp; jobs</h3>
+            <p>
+              Watch subagents and background jobs live in side panels —
+              in-process children or real Claude Code / Codex CLIs.
+            </p>
+            <div class="keys"><kbd>ActivityPanels</kbd></div>
+          </div>
+          <div class="card">
+            <div class="ico">🧩</div>
+            <h3>Agent presets</h3>
+            <p>
+              Named by the kind of work — <code>build</code>,
+              <code>research</code>, <code>verify</code> — each routing to its
+              own model.
+            </p>
+            <div class="keys"><kbd>Ctrl+A</kbd></div>
+          </div>
+          <div class="card">
+            <div class="ico">📚</div>
+            <h3>Skills</h3>
+            <p>
+              Load task-specific instruction packs from
+              <code>.dsh/skills/</code>. This repo ships
+              <code>mount-harness-plugin</code>.
+            </p>
+            <div class="keys"><kbd>Ctrl+K</kbd></div>
+          </div>
+          <div class="card">
+            <div class="ico">📜</div>
+            <h3>Trajectory &amp; deliverables</h3>
+            <p>
+              A full-height event timeline of the agent's activity, and a panel
+              of files written and commands run.
+            </p>
+            <div class="keys"><kbd>Ctrl+E</kbd><kbd>Ctrl+O</kbd></div>
+          </div>
+          <div class="card">
+            <div class="ico">🛠️</div>
+            <h3>Local shell</h3>
+            <p>
+              <code>!command</code> shorthand runs a bounded, owned shell
+              process group outside model history — 120s timeout, clean
+              teardown.
+            </p>
+            <div class="keys"><kbd>/shell</kbd><kbd>!ls</kbd></div>
+          </div>
+          <div class="card">
+            <div class="ico">🎨</div>
+            <h3>Themes</h3>
+            <p>
+              23 built-in themes from Tokyo Night to High Contrast, remembered
+              across launches.
+            </p>
+            <div class="keys"><kbd>/theme</kbd></div>
+          </div>
+          <div class="card">
+            <div class="ico">🔒</div>
+            <h3>Permissions &amp; sandbox</h3>
+            <p>
+              Switch sandbox + approval presets. Writes and commands are
+              confined (seatbelt on macOS, bwrap/landlock on Linux).
+            </p>
+            <div class="keys"><kbd>/permission</kbd></div>
+          </div>
+          <div class="card">
+            <div class="ico">🔎</div>
+            <h3>Search &amp; copy</h3>
+            <p>
+              Case-insensitive transcript search, and copy the latest message or
+              the whole conversation including streamed text.
+            </p>
+            <div class="keys"><kbd>Ctrl+F</kbd><kbd>/copy</kbd></div>
+          </div>
+          <div class="card">
+            <div class="ico">📊</div>
+            <h3>Live status</h3>
+            <p>
+              Animated activity labels for model waits, reasoning, tool
+              execution and compaction, with token totals and route in the
+              status bar.
+            </p>
+            <div class="keys"><kbd>/status</kbd></div>
+          </div>
+          <div class="card">
+            <div class="ico">🧠</div>
+            <h3>Compaction</h3>
+            <p>
+              Automatic context compaction on a cheap summarizer model, plus
+              manual <code>/compact</code> outside the message stream.
+            </p>
+            <div class="keys"><kbd>/compact</kbd></div>
+          </div>
+          <div class="card">
+            <div class="ico">💬</div>
+            <h3>Interactions</h3>
+            <p>
+              Approval and question requests pre-empt overlays. Approvals
+              default to reject; questions accept labels, numbers, multi-select,
+              or free text.
+            </p>
+            <div class="keys"><kbd>Esc</kbd></div>
+          </div>
+          <div class="card">
+            <div class="ico">📝</div>
+            <h3>Feedback</h3>
+            <p>
+              Record free-form remarks about the session via
+              <code>/feedback</code>, shown most-recent-first in a panel.
+            </p>
+            <div class="keys"><kbd>/feedback</kbd></div>
+          </div>
+        </div>
       </div>
-      <div class="arrow"><div><span class="line">⇄</span><br/>stdio<br/>JSON-RPC</div></div>
-      <div class="node">
-        <span class="tag">deepseek-harness</span>
-        <h4>The runtime (dsh)</h4>
-        <p>"Everything is a plugin." Composed from ~80 <code>dsh-*</code> packages via Cordis. Runs the model loop, tools, sessions.</p>
-      </div>
-      <div class="arrow"><div><span class="line">→</span><br/>ctx.*<br/>seams</div></div>
-      <div class="node">
-        <span class="tag">plugins</span>
-        <h4>Capabilities</h4>
-        <p>Files, shell, sandbox, subagents, web, LSP, MCP, goals, workflow, schedule, presets, skills, hooks.</p>
-      </div>
-    </div>
-    <div class="note">
-      It links <b>Cass67/deepseek-harness</b> rather than upstream, because the TUI needs
-      <code>settings</code> and <code>skills</code> methods that upstream does not expose yet.
-      Point <code>DSH_HARNESS_PATH</code> elsewhere to change the checkout.
-    </div>
-  </div>
-</section>
+    </section>
 
-<section id="features">
-  <div class="wrap">
-    <div class="sec-head"><span class="idx">02</span><h2>What you can do from the TUI</h2></div>
-    <p class="sec-sub">
-      Every one of these is reachable live in the terminal — no config file required. Pickers,
-      overlays and panels appear on demand and pre-empt each other sensibly.
-    </p>
-    <div class="grid">
-      <div class="card">
-        <div class="ico">🧭</div>
-        <h3>Provider &amp; model routing</h3>
-        <p>Switch among 38 routes, fuzzy-search models across every authenticated provider, and pick a reasoning level per model.</p>
-        <div class="keys"><kbd>Ctrl+P</kbd><kbd>Ctrl+L</kbd><kbd>Ctrl+T</kbd></div>
+    <section id="keys">
+      <div class="wrap">
+        <div class="sec-head">
+          <span class="idx">03</span>
+          <h2>Keyboard shortcuts</h2>
+        </div>
+        <p class="sec-sub">
+          The whole app is keyboard-driven. Command-key shortcuts work when your
+          terminal forwards them.
+        </p>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Key</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="key">Enter</span></td>
+                <td>Send; during an active turn, queue a follow-up prompt</td>
+              </tr>
+              <tr>
+                <td><span class="key">Shift+Enter</span></td>
+                <td>Newline in the composer</td>
+              </tr>
+              <tr>
+                <td><span class="key">Tab</span></td>
+                <td>Complete a slash command</td>
+              </tr>
+              <tr>
+                <td><span class="key">Double-click word</span></td>
+                <td>Select it and copy to the host clipboard</td>
+              </tr>
+              <tr>
+                <td><span class="key">Cmd+A / C / V</span></td>
+                <td>Composer select-all / copy / paste (when forwarded)</td>
+              </tr>
+              <tr>
+                <td><span class="key">Ctrl+Shift+A · Y · V</span></td>
+                <td>Terminal-forwarded select-all / copy / paste</td>
+              </tr>
+              <tr>
+                <td><span class="key">Ctrl+Shift+C / V</span></td>
+                <td>
+                  Additional copy / paste fallbacks (also
+                  <span class="key">Ctrl+Insert</span> /
+                  <span class="key">Shift+Insert</span>)
+                </td>
+              </tr>
+              <tr>
+                <td><span class="key">Esc</span></td>
+                <td>
+                  Reject/cancel a pending interaction; else cancel shell, close
+                  overlay, or cancel the active turn
+                </td>
+              </tr>
+              <tr>
+                <td><span class="key">Ctrl+F</span></td>
+                <td>Transcript search</td>
+              </tr>
+              <tr>
+                <td><span class="key">Ctrl+R</span></td>
+                <td>Durable session picker</td>
+              </tr>
+              <tr>
+                <td><span class="key">Ctrl+L</span></td>
+                <td>Fuzzy model picker across authenticated providers</td>
+              </tr>
+              <tr>
+                <td><span class="key">Ctrl+P</span></td>
+                <td>Provider picker</td>
+              </tr>
+              <tr>
+                <td><span class="key">Ctrl+T</span></td>
+                <td>Reasoning-level picker for the current model</td>
+              </tr>
+              <tr>
+                <td><span class="key">Ctrl+S</span></td>
+                <td>
+                  Settings overlay (model, reasoning, theme, session, shortcuts)
+                </td>
+              </tr>
+              <tr>
+                <td><span class="key">Ctrl+K</span></td>
+                <td>Skill picker</td>
+              </tr>
+              <tr>
+                <td><span class="key">Ctrl+A</span></td>
+                <td>Agent-preset picker</td>
+              </tr>
+              <tr>
+                <td><span class="key">Ctrl+D</span></td>
+                <td>Working-directory picker</td>
+              </tr>
+              <tr>
+                <td><span class="key">Ctrl+E</span></td>
+                <td>Trajectory (session event timeline)</td>
+              </tr>
+              <tr>
+                <td><span class="key">Ctrl+O</span></td>
+                <td>Deliverables (files written, commands run)</td>
+              </tr>
+              <tr>
+                <td><span class="key">Ctrl+C</span></td>
+                <td>Cancel active shell or turn; otherwise quit</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
-      <div class="card">
-        <div class="ico">🔐</div>
-        <h3>Auth &amp; credentials</h3>
-        <p>Masked API-key entry, or OAuth / subscription sign-in (e.g. OpenAI Codex via ChatGPT Plus/Pro). Stored owner-private, never in chat.</p>
-        <div class="keys"><kbd>/provider</kbd></div>
-      </div>
-      <div class="card">
-        <div class="ico">🖼️</div>
-        <h3>Image attachments</h3>
-        <p>Queue PNG / JPEG / WebP / GIF for the next prompt via <code>/attach</code> or by dragging a path into the composer.</p>
-        <div class="keys"><kbd>/attach</kbd><kbd>/unattach</kbd></div>
-      </div>
-      <div class="card">
-        <div class="ico">🗂️</div>
-        <h3>Sessions</h3>
-        <p>Browse durable sessions by title/time and resume an explicitly selected one. History is read through the harness query API, never parsed by hand.</p>
-        <div class="keys"><kbd>Ctrl+R</kbd><kbd>/sessions</kbd></div>
-      </div>
-      <div class="card">
-        <div class="ico">🎯</div>
-        <h3>Goals &amp; planning</h3>
-        <p>Long-running objectives with bounded rounds, plus a plan-mode banner that gates implementation behind an approved plan.</p>
-        <div class="keys"><kbd>GoalPanel</kbd><kbd>PlanBanner</kbd></div>
-      </div>
-      <div class="card">
-        <div class="ico">🤖</div>
-        <h3>Delegation &amp; jobs</h3>
-        <p>Watch subagents and background jobs live in side panels — in-process children or real Claude Code / Codex CLIs.</p>
-        <div class="keys"><kbd>ActivityPanels</kbd></div>
-      </div>
-      <div class="card">
-        <div class="ico">🧩</div>
-        <h3>Agent presets</h3>
-        <p>Named by the kind of work — <code>build</code>, <code>research</code>, <code>verify</code> — each routing to its own model.</p>
-        <div class="keys"><kbd>Ctrl+A</kbd></div>
-      </div>
-      <div class="card">
-        <div class="ico">📚</div>
-        <h3>Skills</h3>
-        <p>Load task-specific instruction packs from <code>.dsh/skills/</code>. This repo ships <code>mount-harness-plugin</code>.</p>
-        <div class="keys"><kbd>Ctrl+K</kbd></div>
-      </div>
-      <div class="card">
-        <div class="ico">📜</div>
-        <h3>Trajectory &amp; deliverables</h3>
-        <p>A full-height event timeline of the agent's activity, and a panel of files written and commands run.</p>
-        <div class="keys"><kbd>Ctrl+E</kbd><kbd>Ctrl+O</kbd></div>
-      </div>
-      <div class="card">
-        <div class="ico">🛠️</div>
-        <h3>Local shell</h3>
-        <p><code>!command</code> shorthand runs a bounded, owned shell process group outside model history — 120s timeout, clean teardown.</p>
-        <div class="keys"><kbd>/shell</kbd><kbd>!ls</kbd></div>
-      </div>
-      <div class="card">
-        <div class="ico">🎨</div>
-        <h3>Themes</h3>
-        <p>23 built-in themes from Tokyo Night to High Contrast, remembered across launches.</p>
-        <div class="keys"><kbd>/theme</kbd></div>
-      </div>
-      <div class="card">
-        <div class="ico">🔒</div>
-        <h3>Permissions &amp; sandbox</h3>
-        <p>Switch sandbox + approval presets. Writes and commands are confined (seatbelt on macOS, bwrap/landlock on Linux).</p>
-        <div class="keys"><kbd>/permission</kbd></div>
-      </div>
-      <div class="card">
-        <div class="ico">🔎</div>
-        <h3>Search &amp; copy</h3>
-        <p>Case-insensitive transcript search, and copy the latest message or the whole conversation including streamed text.</p>
-        <div class="keys"><kbd>Ctrl+F</kbd><kbd>/copy</kbd></div>
-      </div>
-      <div class="card">
-        <div class="ico">📊</div>
-        <h3>Live status</h3>
-        <p>Animated activity labels for model waits, reasoning, tool execution and compaction, with token totals and route in the status bar.</p>
-        <div class="keys"><kbd>/status</kbd></div>
-      </div>
-      <div class="card">
-        <div class="ico">🧠</div>
-        <h3>Compaction</h3>
-        <p>Automatic context compaction on a cheap summarizer model, plus manual <code>/compact</code> outside the message stream.</p>
-        <div class="keys"><kbd>/compact</kbd></div>
-      </div>
-      <div class="card">
-        <div class="ico">💬</div>
-        <h3>Interactions</h3>
-        <p>Approval and question requests pre-empt overlays. Approvals default to reject; questions accept labels, numbers, multi-select, or free text.</p>
-        <div class="keys"><kbd>Esc</kbd></div>
-      </div>
-      <div class="card">
-        <div class="ico">📝</div>
-        <h3>Feedback</h3>
-        <p>Record free-form remarks about the session via <code>/feedback</code>, shown most-recent-first in a panel.</p>
-        <div class="keys"><kbd>/feedback</kbd></div>
-      </div>
-    </div>
-  </div>
-</section>
+    </section>
 
-<section id="keys">
-  <div class="wrap">
-    <div class="sec-head"><span class="idx">03</span><h2>Keyboard shortcuts</h2></div>
-    <p class="sec-sub">The whole app is keyboard-driven. Command-key shortcuts work when your terminal forwards them.</p>
-    <div class="tbl-wrap">
-      <table>
-        <thead><tr><th>Key</th><th>Action</th></tr></thead>
-        <tbody>
-          <tr><td><span class="key">Enter</span></td><td>Send; during an active turn, queue a follow-up prompt</td></tr>
-          <tr><td><span class="key">Shift+Enter</span></td><td>Newline in the composer</td></tr>
-          <tr><td><span class="key">Tab</span></td><td>Complete a slash command</td></tr>
-          <tr><td><span class="key">Double-click word</span></td><td>Select it and copy to the host clipboard</td></tr>
-          <tr><td><span class="key">Cmd+A / C / V</span></td><td>Composer select-all / copy / paste (when forwarded)</td></tr>
-          <tr><td><span class="key">Ctrl+Shift+A · Y · V</span></td><td>Terminal-forwarded select-all / copy / paste</td></tr>
-          <tr><td><span class="key">Ctrl+Shift+C / V</span></td><td>Additional copy / paste fallbacks (also <span class="key">Ctrl+Insert</span> / <span class="key">Shift+Insert</span>)</td></tr>
-          <tr><td><span class="key">Esc</span></td><td>Reject/cancel a pending interaction; else cancel shell, close overlay, or cancel the active turn</td></tr>
-          <tr><td><span class="key">Ctrl+F</span></td><td>Transcript search</td></tr>
-          <tr><td><span class="key">Ctrl+R</span></td><td>Durable session picker</td></tr>
-          <tr><td><span class="key">Ctrl+L</span></td><td>Fuzzy model picker across authenticated providers</td></tr>
-          <tr><td><span class="key">Ctrl+P</span></td><td>Provider picker</td></tr>
-          <tr><td><span class="key">Ctrl+T</span></td><td>Reasoning-level picker for the current model</td></tr>
-          <tr><td><span class="key">Ctrl+S</span></td><td>Settings overlay (model, reasoning, theme, session, shortcuts)</td></tr>
-          <tr><td><span class="key">Ctrl+K</span></td><td>Skill picker</td></tr>
-          <tr><td><span class="key">Ctrl+A</span></td><td>Agent-preset picker</td></tr>
-          <tr><td><span class="key">Ctrl+D</span></td><td>Working-directory picker</td></tr>
-          <tr><td><span class="key">Ctrl+E</span></td><td>Trajectory (session event timeline)</td></tr>
-          <tr><td><span class="key">Ctrl+O</span></td><td>Deliverables (files written, commands run)</td></tr>
-          <tr><td><span class="key">Ctrl+C</span></td><td>Cancel active shell or turn; otherwise quit</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</section>
-
-<section id="commands">
-  <div class="wrap">
-    <div class="sec-head"><span class="idx">04</span><h2>Slash commands</h2></div>
-    <p class="sec-sub">Unknown slash commands are offered to the harness command registry — never sent to the model as ordinary messages.</p>
-    <div class="tbl-wrap">
-      <table>
-        <thead><tr><th>Command</th><th>What it does</th></tr></thead>
-        <tbody>
-          <tr><td><span class="cmd">/model [id]</span></td><td>Select an exact model, or open authenticated models when omitted</td></tr>
-          <tr><td><span class="cmd">/models</span></td><td>Fuzzy-search models across every authenticated provider</td></tr>
-          <tr><td><span class="cmd">/provider [id]</span></td><td>Open provider actions: auth, disconnect, model selection</td></tr>
-          <tr><td><span class="cmd">/reasoning [level]</span></td><td>Pick an adapter-declared reasoning level for the current model</td></tr>
-          <tr><td><span class="cmd">/new</span></td><td>Close the live agent and start a blank session on the selected route</td></tr>
-          <tr><td><span class="cmd">/sessions</span></td><td>Browse durable sessions and resume a saved one</td></tr>
-          <tr><td><span class="cmd">/attach &lt;path&gt;</span></td><td>Validate, save, and queue an image for the next prompt</td></tr>
-          <tr><td><span class="cmd">/unattach</span></td><td>Clear queued images without sending</td></tr>
-          <tr><td><span class="cmd">/clear</span></td><td>Clear displayed messages without changing model context</td></tr>
-          <tr><td><span class="cmd">/compact</span></td><td>Run manual compaction outside the message stream</td></tr>
-          <tr><td><span class="cmd">/cancel</span></td><td>Request cancellation of the active turn</td></tr>
-          <tr><td><span class="cmd">/status</span></td><td>Show session id, route, lifecycle state, token totals, theme</td></tr>
-          <tr><td><span class="cmd">/search &lt;q&gt;</span></td><td>Search displayed transcript text case-insensitively</td></tr>
-          <tr><td><span class="cmd">/copy [last|all]</span></td><td>Copy the latest message or the full transcript</td></tr>
-          <tr><td><span class="cmd">/shell &lt;cmd&gt;</span></td><td>Run one bounded local shell process group (also <span class="cmd">!cmd</span>)</td></tr>
-          <tr><td><span class="cmd">/theme [name]</span></td><td>Open the theme picker or set an exact theme id</td></tr>
-          <tr><td><span class="cmd">/permission</span></td><td>Switch the sandbox + approval preset</td></tr>
-          <tr><td><span class="cmd">/feedback</span></td><td>Record a free-form remark about the session</td></tr>
-          <tr><td><span class="cmd">/help</span></td><td>Show local and runtime-discovered commands</td></tr>
-          <tr><td><span class="cmd">/quit</span></td><td>Shut down the harness runtime and exit</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</section>
-
-<section id="tools">
-  <div class="wrap">
-    <div class="sec-head"><span class="idx">05</span><h2>Model-facing tool coverage</h2></div>
-    <p class="sec-sub">
-      <code>cordis.yml</code> plus the agent spine expose <b>47 model-facing tools</b> — 21 of the 24
-      tool packages in the harness's generated tool catalog, plus MCP. This is what the agent can actually call.
-    </p>
-    <div class="tbl-wrap">
-      <table>
-        <thead><tr><th>Area</th><th>Tools</th><th>Status</th></tr></thead>
-        <tbody>
-          <tr><td>Files</td><td><code>read</code> <code>write</code> <code>edit</code> <code>read_image</code> <code>str_replace_editor</code> <code>glob</code> <code>grep</code></td><td><span class="pill ok">mounted</span></td></tr>
-          <tr><td>Shell</td><td><code>bash</code> (sandbox-confined; background runs become jobs)</td><td><span class="pill ok">mounted</span></td></tr>
-          <tr><td>Terminal</td><td><code>terminal_open</code> <code>terminal_read</code> <code>terminal_send</code> <code>terminal_close</code> <code>terminal_list</code> <code>terminal_signal</code></td><td><span class="pill ok">mounted</span></td></tr>
-          <tr><td>Jobs</td><td><code>job_list</code> <code>job_output</code> <code>job_kill</code></td><td><span class="pill ok">mounted</span></td></tr>
-          <tr><td>Delegation</td><td><code>subagent</code> <code>subagent_fork</code> <code>claude_code</code> <code>codex</code> <code>send_message</code> <code>interrupt_agent</code> <code>list_agents</code> <code>report</code></td><td><span class="pill ok">mounted</span></td></tr>
-          <tr><td>Planning</td><td><code>exit_plan_mode</code> <code>create_goal</code> <code>get_goal</code> <code>update_goal</code> <code>todo_write</code></td><td><span class="pill ok">mounted</span></td></tr>
-          <tr><td>Workflow</td><td><code>workflow</code> <code>ralph</code></td><td><span class="pill ok">mounted</span></td></tr>
-          <tr><td>Web</td><td><code>web_search</code> <code>web_fetch</code></td><td><span class="pill ok">mounted</span></td></tr>
-          <tr><td>Sessions</td><td><code>session_search</code> <code>session_trace</code> <code>session_event_read</code> <code>session_event_search</code> <code>session_event_trace</code></td><td><span class="pill ok">mounted</span></td></tr>
-          <tr><td>Schedule</td><td><code>schedule_create</code> <code>schedule_list</code> <code>schedule_delete</code></td><td><span class="pill ok">mounted</span></td></tr>
-          <tr><td>Code</td><td><code>lsp</code> <code>run_code</code></td><td><span class="pill ok">mounted</span></td></tr>
-          <tr><td>Skills</td><td><code>skill</code></td><td><span class="pill ok">mounted</span></td></tr>
-          <tr><td>Ask</td><td><code>ask_user_question</code></td><td><span class="pill ok">mounted</span></td></tr>
-          <tr><td>MCP</td><td><code>mcp__context7__resolve-library-id</code> <code>mcp__context7__query-docs</code></td><td><span class="pill ok">mounted</span></td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div class="two" style="margin-top:16px">
-      <div class="box">
-        <h3>Deliberately not mounted</h3>
-        <ul>
-          <li><code>dsh-subagent-dsh-sdk</code>, <code>dsh-subagent-acp</code> — need a second runtime / ACP agent</li>
-          <li><code>dsh-web-search-exa</code>, <code>dsh-web-search-perplexity</code> — need API keys</li>
-          <li><code>dsh-tool-pwsh</code>, <code>dsh-pwsh-*</code>, <code>dsh-sandbox-windows-acl</code> — Windows only</li>
-          <li><code>dsh-tool-cordis</code> — dynamic code reaches the real runtime; opt-in by design</li>
-          <li><code>dsh-tool-bash-persistent</code> — superseded by the terminal tools</li>
-          <li><code>dsh-fs-local</code>, <code>dsh-bash-local</code> — replaced by their sandbox equivalents</li>
-          <li>types-only / abstract bases — mounting them fails to load</li>
-        </ul>
+    <section id="commands">
+      <div class="wrap">
+        <div class="sec-head">
+          <span class="idx">04</span>
+          <h2>Slash commands</h2>
+        </div>
+        <p class="sec-sub">
+          Unknown slash commands are offered to the harness command registry —
+          never sent to the model as ordinary messages.
+        </p>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Command</th>
+                <th>What it does</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="cmd">/model [id]</span></td>
+                <td>
+                  Select an exact model, or open authenticated models when
+                  omitted
+                </td>
+              </tr>
+              <tr>
+                <td><span class="cmd">/models</span></td>
+                <td>Fuzzy-search models across every authenticated provider</td>
+              </tr>
+              <tr>
+                <td><span class="cmd">/provider [id]</span></td>
+                <td>
+                  Open provider actions: auth, disconnect, model selection
+                </td>
+              </tr>
+              <tr>
+                <td><span class="cmd">/reasoning [level]</span></td>
+                <td>
+                  Pick an adapter-declared reasoning level for the current model
+                </td>
+              </tr>
+              <tr>
+                <td><span class="cmd">/new</span></td>
+                <td>
+                  Close the live agent and start a blank session on the selected
+                  route
+                </td>
+              </tr>
+              <tr>
+                <td><span class="cmd">/sessions</span></td>
+                <td>Browse durable sessions and resume a saved one</td>
+              </tr>
+              <tr>
+                <td><span class="cmd">/attach &lt;path&gt;</span></td>
+                <td>Validate, save, and queue an image for the next prompt</td>
+              </tr>
+              <tr>
+                <td><span class="cmd">/unattach</span></td>
+                <td>Clear queued images without sending</td>
+              </tr>
+              <tr>
+                <td><span class="cmd">/clear</span></td>
+                <td>Clear displayed messages without changing model context</td>
+              </tr>
+              <tr>
+                <td><span class="cmd">/compact</span></td>
+                <td>Run manual compaction outside the message stream</td>
+              </tr>
+              <tr>
+                <td><span class="cmd">/cancel</span></td>
+                <td>Request cancellation of the active turn</td>
+              </tr>
+              <tr>
+                <td><span class="cmd">/status</span></td>
+                <td>
+                  Show session id, route, lifecycle state, token totals, theme
+                </td>
+              </tr>
+              <tr>
+                <td><span class="cmd">/search &lt;q&gt;</span></td>
+                <td>Search displayed transcript text case-insensitively</td>
+              </tr>
+              <tr>
+                <td><span class="cmd">/copy [last|all]</span></td>
+                <td>Copy the latest message or the full transcript</td>
+              </tr>
+              <tr>
+                <td><span class="cmd">/shell &lt;cmd&gt;</span></td>
+                <td>
+                  Run one bounded local shell process group (also
+                  <span class="cmd">!cmd</span>)
+                </td>
+              </tr>
+              <tr>
+                <td><span class="cmd">/theme [name]</span></td>
+                <td>Open the theme picker or set an exact theme id</td>
+              </tr>
+              <tr>
+                <td><span class="cmd">/permission</span></td>
+                <td>Switch the sandbox + approval preset</td>
+              </tr>
+              <tr>
+                <td><span class="cmd">/feedback</span></td>
+                <td>Record a free-form remark about the session</td>
+              </tr>
+              <tr>
+                <td><span class="cmd">/help</span></td>
+                <td>Show local and runtime-discovered commands</td>
+              </tr>
+              <tr>
+                <td><span class="cmd">/quit</span></td>
+                <td>Shut down the harness runtime and exit</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
-      <div class="box">
-        <h3>Under the hood</h3>
-        <ul>
-          <li><b>Sandbox</b> — <code>dsh-fs-sandbox</code> + <code>dsh-bash-sandbox</code> confine writes and commands; default <code>workspace-write</code></li>
-          <li><b>Delegation</b> — in-process subagents, plus real Claude Code / Codex CLIs as genuinely different agents</li>
-          <li><b>MCP</b> — one row per server; context7 ships wired up, degrades gracefully on failure</li>
-          <li><b>Skills</b> — from <code>.dsh/skills/&lt;name&gt;/SKILL.md</code></li>
-          <li><b>Hooks</b> — Claude-Code format from <code>.claude/settings.json</code>, Codex format from <code>$CODEX_HOME/config.toml</code></li>
-          <li><b>Compaction</b> — <code>qwen3.6-flash</code> summarizer, threshold 0.4 / retain 0.16</li>
-        </ul>
+    </section>
+
+    <section id="tools">
+      <div class="wrap">
+        <div class="sec-head">
+          <span class="idx">05</span>
+          <h2>Model-facing tool coverage</h2>
+        </div>
+        <p class="sec-sub">
+          <code>cordis.yml</code> plus the agent spine expose
+          <b>47 model-facing tools</b> — 21 of the 24 tool packages in the
+          harness's generated tool catalog, plus MCP. This is what the agent can
+          actually call.
+        </p>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Area</th>
+                <th>Tools</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Files</td>
+                <td>
+                  <code>read</code> <code>write</code> <code>edit</code>
+                  <code>read_image</code> <code>str_replace_editor</code>
+                  <code>glob</code> <code>grep</code>
+                </td>
+                <td><span class="pill ok">mounted</span></td>
+              </tr>
+              <tr>
+                <td>Shell</td>
+                <td>
+                  <code>bash</code> (sandbox-confined; background runs become
+                  jobs)
+                </td>
+                <td><span class="pill ok">mounted</span></td>
+              </tr>
+              <tr>
+                <td>Terminal</td>
+                <td>
+                  <code>terminal_open</code> <code>terminal_read</code>
+                  <code>terminal_send</code> <code>terminal_close</code>
+                  <code>terminal_list</code> <code>terminal_signal</code>
+                </td>
+                <td><span class="pill ok">mounted</span></td>
+              </tr>
+              <tr>
+                <td>Jobs</td>
+                <td>
+                  <code>job_list</code> <code>job_output</code>
+                  <code>job_kill</code>
+                </td>
+                <td><span class="pill ok">mounted</span></td>
+              </tr>
+              <tr>
+                <td>Delegation</td>
+                <td>
+                  <code>subagent</code> <code>subagent_fork</code>
+                  <code>claude_code</code> <code>codex</code>
+                  <code>send_message</code> <code>interrupt_agent</code>
+                  <code>list_agents</code> <code>report</code>
+                </td>
+                <td><span class="pill ok">mounted</span></td>
+              </tr>
+              <tr>
+                <td>Planning</td>
+                <td>
+                  <code>exit_plan_mode</code> <code>create_goal</code>
+                  <code>get_goal</code> <code>update_goal</code>
+                  <code>todo_write</code>
+                </td>
+                <td><span class="pill ok">mounted</span></td>
+              </tr>
+              <tr>
+                <td>Workflow</td>
+                <td><code>workflow</code> <code>ralph</code></td>
+                <td><span class="pill ok">mounted</span></td>
+              </tr>
+              <tr>
+                <td>Web</td>
+                <td><code>web_search</code> <code>web_fetch</code></td>
+                <td><span class="pill ok">mounted</span></td>
+              </tr>
+              <tr>
+                <td>Sessions</td>
+                <td>
+                  <code>session_search</code> <code>session_trace</code>
+                  <code>session_event_read</code>
+                  <code>session_event_search</code>
+                  <code>session_event_trace</code>
+                </td>
+                <td><span class="pill ok">mounted</span></td>
+              </tr>
+              <tr>
+                <td>Schedule</td>
+                <td>
+                  <code>schedule_create</code> <code>schedule_list</code>
+                  <code>schedule_delete</code>
+                </td>
+                <td><span class="pill ok">mounted</span></td>
+              </tr>
+              <tr>
+                <td>Code</td>
+                <td><code>lsp</code> <code>run_code</code></td>
+                <td><span class="pill ok">mounted</span></td>
+              </tr>
+              <tr>
+                <td>Skills</td>
+                <td><code>skill</code></td>
+                <td><span class="pill ok">mounted</span></td>
+              </tr>
+              <tr>
+                <td>Ask</td>
+                <td><code>ask_user_question</code></td>
+                <td><span class="pill ok">mounted</span></td>
+              </tr>
+              <tr>
+                <td>MCP</td>
+                <td>
+                  <code>mcp__context7__resolve-library-id</code>
+                  <code>mcp__context7__query-docs</code>
+                </td>
+                <td><span class="pill ok">mounted</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="two" style="margin-top: 16px">
+          <div class="box">
+            <h3>Deliberately not mounted</h3>
+            <ul>
+              <li>
+                <code>dsh-subagent-dsh-sdk</code>,
+                <code>dsh-subagent-acp</code> — need a second runtime / ACP
+                agent
+              </li>
+              <li>
+                <code>dsh-web-search-exa</code>,
+                <code>dsh-web-search-perplexity</code> — need API keys
+              </li>
+              <li>
+                <code>dsh-tool-pwsh</code>, <code>dsh-pwsh-*</code>,
+                <code>dsh-sandbox-windows-acl</code> — Windows only
+              </li>
+              <li>
+                <code>dsh-tool-cordis</code> — dynamic code reaches the real
+                runtime; opt-in by design
+              </li>
+              <li>
+                <code>dsh-tool-bash-persistent</code> — superseded by the
+                terminal tools
+              </li>
+              <li>
+                <code>dsh-fs-local</code>, <code>dsh-bash-local</code> —
+                replaced by their sandbox equivalents
+              </li>
+              <li>types-only / abstract bases — mounting them fails to load</li>
+            </ul>
+          </div>
+          <div class="box">
+            <h3>Under the hood</h3>
+            <ul>
+              <li>
+                <b>Sandbox</b> — <code>dsh-fs-sandbox</code> +
+                <code>dsh-bash-sandbox</code> confine writes and commands;
+                default <code>workspace-write</code>
+              </li>
+              <li>
+                <b>Delegation</b> — in-process subagents, plus real Claude Code
+                / Codex CLIs as genuinely different agents
+              </li>
+              <li>
+                <b>MCP</b> — one row per server; context7 ships wired up,
+                degrades gracefully on failure
+              </li>
+              <li>
+                <b>Skills</b> — from
+                <code>.dsh/skills/&lt;name&gt;/SKILL.md</code>
+              </li>
+              <li>
+                <b>Hooks</b> — Claude-Code format from
+                <code>.claude/settings.json</code>, Codex format from
+                <code>$CODEX_HOME/config.toml</code>
+              </li>
+              <li>
+                <b>Compaction</b> — <code>qwen3.6-flash</code> summarizer,
+                threshold 0.4 / retain 0.16
+              </li>
+            </ul>
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
-</section>
+    </section>
 
-<section id="providers">
-  <div class="wrap">
-    <div class="sec-head"><span class="idx">06</span><h2>Provider routes</h2></div>
-    <p class="sec-sub">
-      38 routes — 37 installed catalog routes plus the configured local router. Each inherits its
-      provider's native endpoint, model catalog, modality metadata, reasoning levels, credential
-      discovery, and OAuth/subscription login.
-    </p>
-    <div class="chips">
-      <span class="chip">amazon-bedrock</span><span class="chip">ant-ling</span><span class="chip">anthropic</span>
-      <span class="chip">azure-openai-responses</span><span class="chip">cerebras</span><span class="chip">cloudflare-ai-gateway</span>
-      <span class="chip">cloudflare-workers-ai</span><span class="chip">deepseek</span><span class="chip">fireworks</span>
-      <span class="chip">github-copilot</span><span class="chip">google</span><span class="chip">google-vertex</span>
-      <span class="chip">groq</span><span class="chip">huggingface</span><span class="chip">kimi-coding</span>
-      <span class="chip">minimax</span><span class="chip">minimax-cn</span><span class="chip">mistral</span>
-      <span class="chip">moonshotai</span><span class="chip">moonshotai-cn</span><span class="chip">nvidia</span>
-      <span class="chip">openai</span><span class="chip">openai-codex</span><span class="chip">opencode</span>
-      <span class="chip">opencode-go</span><span class="chip">openrouter</span><span class="chip">qwen-token-plan</span>
-      <span class="chip">qwen-token-plan-cn</span><span class="chip">together</span><span class="chip">vercel-ai-gateway</span>
-      <span class="chip">xai</span><span class="chip">xiaomi</span><span class="chip">xiaomi-token-plan-ams</span>
-      <span class="chip">xiaomi-token-plan-cn</span><span class="chip">xiaomi-token-plan-sgp</span>
-      <span class="chip">zai</span><span class="chip">zai-coding-cn</span>
-      <span class="chip local">local-llm-router</span>
-    </div>
-    <div class="note">
-      Custom gateways and per-machine overrides live in
-      <code>${XDG_CONFIG_HOME:-~/.config}/deepseek-tui/providers.yaml</code> and hot-reload through
-      harness settings — a host name local to one network never has to land in the repo.
-    </div>
-  </div>
-</section>
+    <section id="providers">
+      <div class="wrap">
+        <div class="sec-head">
+          <span class="idx">06</span>
+          <h2>Provider routes</h2>
+        </div>
+        <p class="sec-sub">
+          38 routes — 37 installed catalog routes plus the configured local
+          router. Each inherits its provider's native endpoint, model catalog,
+          modality metadata, reasoning levels, credential discovery, and
+          OAuth/subscription login.
+        </p>
+        <div class="chips">
+          <span class="chip">amazon-bedrock</span
+          ><span class="chip">ant-ling</span><span class="chip">anthropic</span>
+          <span class="chip">azure-openai-responses</span
+          ><span class="chip">cerebras</span
+          ><span class="chip">cloudflare-ai-gateway</span>
+          <span class="chip">cloudflare-workers-ai</span
+          ><span class="chip">deepseek</span><span class="chip">fireworks</span>
+          <span class="chip">github-copilot</span
+          ><span class="chip">google</span
+          ><span class="chip">google-vertex</span> <span class="chip">groq</span
+          ><span class="chip">huggingface</span
+          ><span class="chip">kimi-coding</span>
+          <span class="chip">minimax</span><span class="chip">minimax-cn</span
+          ><span class="chip">mistral</span> <span class="chip">moonshotai</span
+          ><span class="chip">moonshotai-cn</span
+          ><span class="chip">nvidia</span> <span class="chip">openai</span
+          ><span class="chip">openai-codex</span
+          ><span class="chip">opencode</span>
+          <span class="chip">opencode-go</span
+          ><span class="chip">openrouter</span
+          ><span class="chip">qwen-token-plan</span>
+          <span class="chip">qwen-token-plan-cn</span
+          ><span class="chip">together</span
+          ><span class="chip">vercel-ai-gateway</span>
+          <span class="chip">xai</span><span class="chip">xiaomi</span
+          ><span class="chip">xiaomi-token-plan-ams</span>
+          <span class="chip">xiaomi-token-plan-cn</span
+          ><span class="chip">xiaomi-token-plan-sgp</span>
+          <span class="chip">zai</span><span class="chip">zai-coding-cn</span>
+          <span class="chip local">local-llm-router</span>
+        </div>
+        <div class="note">
+          Custom gateways and per-machine overrides live in
+          <code>${XDG_CONFIG_HOME:-~/.config}/deepseek-tui/providers.yaml</code>
+          and hot-reload through harness settings — a host name local to one
+          network never has to land in the repo.
+        </div>
+      </div>
+    </section>
 
-<section id="setup">
-  <div class="wrap">
-    <div class="sec-head"><span class="idx">07</span><h2>Get running</h2></div>
-    <p class="sec-sub">Needs <b>Bun</b>, <b>Node.js</b>, <b>pnpm</b> and <b>git</b>. The installer fetches and builds the harness next door, installs the app, and checks it works.</p>
-    <pre><span class="c"># 1. install (a few minutes the first time, mostly building)</span>
+    <section id="setup">
+      <div class="wrap">
+        <div class="sec-head">
+          <span class="idx">07</span>
+          <h2>Get running</h2>
+        </div>
+        <p class="sec-sub">
+          Needs <b>Bun</b>, <b>Node.js</b>, <b>pnpm</b> and <b>git</b>. The
+          installer fetches and builds the harness next door, installs the app,
+          and checks it works.
+        </p>
+        <pre><span class="c"># 1. install (a few minutes the first time, mostly building)</span>
 git clone https://github.com/Cass67/deepseek-tui.git
 cd deepseek-tui
 node scripts/install.mjs
@@ -565,42 +1300,75 @@ node scripts/install.mjs
 <span class="c"># 2. run — the launcher keeps your cwd as the agent workspace</span>
 ./bin/deepseek-tui</pre>
 
-    <div class="two" style="margin-top:16px">
-      <div class="box">
-        <h3>Environment</h3>
-        <ul>
-          <li><code>DSH_PROVIDER</code> / <code>DSH_MODEL</code> — pin the route (overrides the remembered one)</li>
-          <li><code>DSH_MAX_TOKENS</code> — output cap per turn (default 16384)</li>
-          <li><code>DSH_CWD</code> — agent workspace (defaults to the launcher's cwd)</li>
-          <li><code>LOCAL_LLM_BASE_URL</code> — endpoint for the local router route</li>
-          <li><code>CONTEXT7_API_KEY</code> — raises context7 rate limits (optional)</li>
-        </ul>
+        <div class="two" style="margin-top: 16px">
+          <div class="box">
+            <h3>Environment</h3>
+            <ul>
+              <li>
+                <code>DSH_PROVIDER</code> / <code>DSH_MODEL</code> — pin the
+                route (overrides the remembered one)
+              </li>
+              <li>
+                <code>DSH_MAX_TOKENS</code> — output cap per turn (default
+                16384)
+              </li>
+              <li>
+                <code>DSH_CWD</code> — agent workspace (defaults to the
+                launcher's cwd)
+              </li>
+              <li>
+                <code>LOCAL_LLM_BASE_URL</code> — endpoint for the local router
+                route
+              </li>
+              <li>
+                <code>CONTEXT7_API_KEY</code> — raises context7 rate limits
+                (optional)
+              </li>
+            </ul>
+          </div>
+          <div class="box">
+            <h3>Health checks</h3>
+            <ul>
+              <li>
+                <code>node scripts/install.mjs --check</code> — harness present,
+                correct, built?
+              </li>
+              <li>
+                <code>node scripts/preflight.mjs</code> — does the harness
+                answer the L2 methods this app calls?
+              </li>
+              <li>
+                <code>node scripts/tool-audit.mjs</code> — which tools actually
+                register (reads the schemas sent to the model)
+              </li>
+              <li>
+                <code>node scripts/tool-exec-check.mjs</code> — tools genuinely
+                execute, incl. a sandbox refusal that must fail
+              </li>
+              <li>
+                <code>bunx tsc --noEmit</code> · <code>bun test</code> ·
+                <code>bun run build</code>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div class="note">
+          Against the upstream harness the app starts and then fails as soon as
+          anything reads settings — the settings overlay, both pickers, and
+          last-model-restore. That's the symptom of the wrong harness, not a bug
+          in the TUI.
+        </div>
       </div>
-      <div class="box">
-        <h3>Health checks</h3>
-        <ul>
-          <li><code>node scripts/install.mjs --check</code> — harness present, correct, built?</li>
-          <li><code>node scripts/preflight.mjs</code> — does the harness answer the L2 methods this app calls?</li>
-          <li><code>node scripts/tool-audit.mjs</code> — which tools actually register (reads the schemas sent to the model)</li>
-          <li><code>node scripts/tool-exec-check.mjs</code> — tools genuinely execute, incl. a sandbox refusal that must fail</li>
-          <li><code>bunx tsc --noEmit</code> · <code>bun test</code> · <code>bun run build</code></li>
-        </ul>
+    </section>
+
+    <footer>
+      <div class="wrap">
+        <span
+          >deepseek-tui · Apache-2.0 · built on the DeepSeek Harness (MIT) &amp;
+          Cordis</span
+        >
+        <span>47 tools · 38 routes · 23 themes · 85 linked packages</span>
       </div>
-    </div>
-    <div class="note">
-      Against the upstream harness the app starts and then fails as soon as anything reads settings —
-      the settings overlay, both pickers, and last-model-restore. That's the symptom of the wrong
-      harness, not a bug in the TUI.
-    </div>
-  </div>
-</section>
-
-<footer>
-  <div class="wrap">
-    <span>deepseek-tui · Apache-2.0 · built on the DeepSeek Harness (MIT) &amp; Cordis</span>
-    <span>47 tools · 38 routes · 23 themes · 85 linked packages</span>
-  </div>
-</footer>
-
-</body>
+    </footer>
+  </body>
 </html>

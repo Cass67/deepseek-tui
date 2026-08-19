@@ -86,6 +86,8 @@ export interface ChatMessage {
   toolArgs?: string;
   toolCallId?: string;
   toolError?: boolean;
+  /** Accumulated reasoning deltas; rendered only when the user opts in. */
+  reasoning?: string;
   attachments?: ImageAttachmentRef[];
   /** Structured todo list for `role: "todo"` messages. */
   todos?: TodoItem[];

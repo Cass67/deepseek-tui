@@ -117,7 +117,7 @@ test("projects direct user data, tool correlation, and cancelled partial output"
   });
 });
 
-test("keeps reasoning out of answer markdown and exposes long-running activity", () => {
+test("captures reasoning apart from answer markdown and exposes long-running activity", () => {
   const messages: ChatMessage[] = [];
   const usage = { input: 0, output: 0 };
   const reasoning = {
@@ -139,10 +139,14 @@ test("keeps reasoning out of answer markdown and exposes long-running activity",
     toolCallNames: new Map<string, string>(),
   });
 
-  assert.deepEqual(messages, []);
+  // Reasoning lands on the assistant message, never in its markdown content.
+  assert.equal(messages.length, 1);
+  assert.equal(messages[0]?.role, "assistant");
+  assert.equal(messages[0]?.content, "");
+  assert.equal(messages[0]?.reasoning, "private thought");
   assert.deepEqual(stream, {
     streamingText: "",
-    assistantId: null,
+    assistantId: messages[0]?.id,
     planModeActive: false,
   });
   assert.equal(activityForEvent(reasoning, "waiting for model"), "thinking");
