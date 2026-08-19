@@ -30,6 +30,8 @@ const ALL = {
   web_fetch: { url: "https://example.com" },
   run_code: { description: "trivial arithmetic", code: "1 + 1" },
   schedule_list: {},
+  claude_code: { description: "smoke test", prompt: "Reply with exactly: ok" },
+  codex: { description: "smoke test", prompt: "Reply with exactly: ok" },
   // Sandbox confinement: a write outside the workspace must be denied.
   // /tmp is a PERMITTED temp dir under workspace-write, so the escape test
   // has to target somewhere genuinely outside: the home directory. This one is
@@ -39,9 +41,15 @@ const ALL = {
     content: "should be denied",
   },
 };
+/**
+ * Excluded from a bare run: these spawn a real external agent CLI, which is
+ * slow and bills real tokens. Name them explicitly to check them.
+ */
+const OPT_IN = new Set(["claude_code", "codex"]);
+
 const names = process.argv.slice(2).length
   ? process.argv.slice(2)
-  : Object.keys(ALL);
+  : Object.keys(ALL).filter((n) => !OPT_IN.has(n));
 
 /** Tools whose call must be REFUSED for the check to pass. */
 const MUST_FAIL = new Set(["write"]);
@@ -202,7 +210,7 @@ for (const name of names) {
   if (!pass) failures++;
   const verdict = pass ? "PASS" : "FAIL";
   const note = MUST_FAIL.has(name) ? " (expected refusal)" : "";
-  console.log(`${verdict} ${name.padEnd(15)}${note} ${outcome.slice(0, 70)}`);
+  console.log(`${verdict} ${name.padEnd(15)}${note} ${outcome.slice(0, 200)}`);
 }
 unlinkSync(probeConfig);
 server.close();

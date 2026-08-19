@@ -341,6 +341,21 @@
     configPath: !!js ((process.env.DSH_CWD ?? process.cwd()) + '/.claude/settings.json')
     projectDir: !!js process.env.DSH_CWD ?? process.cwd()
 
+# Codex-format hooks alongside the Claude-Code ones, reading Codex's own
+# config location. A missing file registers no handlers.
+- id: hooks-codex
+  name: "@deepseek-ai/dsh-hooks-codex"
+  config:
+    configPath: !!js ((process.env.CODEX_HOME ?? ((process.env.HOME ?? '.') + '/.codex')) + '/config.toml')
+
+# Adds a command to export a session's log.
+- id: session-log-export
+  name: "@deepseek-ai/dsh-session-log-export"
+
+# Bundled skill provider, alongside the filesystem one the spine mounts.
+- id: skill-badge
+  name: "@deepseek-ai/dsh-skill-badge"
+
 # ── Code mode: the model writes a program that calls tools as bindings ───────
 # The worker-thread runtime registers ctx.codeRuntime itself; the base package
 # is types-only from the composition's point of view.
@@ -432,6 +447,35 @@
     provider: fork
     toolName: subagent_fork
     backgroundMode: one-shot
+
+# External agent backends. Both shell out to the real product CLI in the
+# delegating session's workspace, so a child is a genuinely different agent
+# rather than another instance of this one. One-shot: they cannot be resumed.
+- id: subagent-claude-code
+  name: "@deepseek-ai/dsh-subagent-claude-code"
+
+- id: subagent-codex
+  name: "@deepseek-ai/dsh-subagent-codex"
+
+- id: tool-subagent-claude-code
+  name: "@deepseek-ai/dsh-tool-subagent"
+  config:
+    provider: claude-code
+    toolName: claude_code
+    backgroundMode: one-shot
+    # External CLIs expose no depthLimit capability, so the recursion budget
+    # is theirs to manage rather than something this layer can enforce.
+    maxDepth: provider-managed
+
+- id: tool-subagent-codex
+  name: "@deepseek-ai/dsh-tool-subagent"
+  config:
+    provider: codex
+    toolName: codex
+    backgroundMode: one-shot
+    # External CLIs expose no depthLimit capability, so the recursion budget
+    # is theirs to manage rather than something this layer can enforce.
+    maxDepth: provider-managed
 
 # Optional direct-child return channel (absent from roots and one-shot agents).
 - id: tool-subagent-report

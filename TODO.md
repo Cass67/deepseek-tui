@@ -71,6 +71,33 @@ All mounted and booting. `node scripts/boot-test.mjs` is the check.
       same model marking its own homework). Each preset's `agent.cordis.yml`
       picks its own route, which is the knob to retune.
 
+## Phase 6 — Everything else the backend supports ✅
+
+- [x] External subagent backends — `dsh-subagent-claude-code` and
+      `dsh-subagent-codex`, exposed as the `claude_code` and `codex` tools.
+      A child is a genuinely different agent, not another instance of this one.
+      Both need `maxDepth: provider-managed`: an external CLI exposes no
+      depthLimit capability, and the tool refuses to load without it.
+      Verified live — the delegated Claude Code agent replied `ok`.
+- [x] Codex-format hooks (`dsh-hooks-codex`) alongside the Claude-Code bridge.
+- [x] Session log export (`dsh-session-log-export`) — adds `/export`.
+- [x] Bundled skill provider (`dsh-skill-badge`).
+
+Deliberately not mounted, with reasons:
+
+- `dsh-subagent-dsh-sdk` — a full out-of-process harness per child. Works, but
+  needs a `command` pointing at a second runtime; no use case here yet.
+- `dsh-subagent-acp` — needs an ACP agent to talk to.
+- `dsh-web-search-exa`, `dsh-web-search-perplexity` — no API keys present.
+- `dsh-tool-pwsh`, `dsh-pwsh-*`, `dsh-sandbox-windows-acl` — Windows only.
+- `dsh-tool-cordis` — ships in no tree by design (dynamic code reaches the
+  real runtime).
+- `dsh-tool-bash-persistent` — superseded by the terminal tools; it would also
+  collide with `bash`.
+- `dsh-fs-local`, `dsh-bash-local` — replaced by their sandbox equivalents.
+- `dsh-hook-protocol`, `dsh-jobs`, `dsh-shell`, `dsh-code-runtime`,
+  `dsh-sandbox` — types-only or abstract bases; mounting them fails.
+
 ## Phase 5 — Parity sweep
 
 - [x] Cross-check `known-event-types.ts` — now a permanent test, not an audit.

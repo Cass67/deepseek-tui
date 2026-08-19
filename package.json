@@ -97,7 +97,12 @@
     "@deepseek-ai/dsh-code-runtime-worker-thread": "link:../deepseek-harness/packages/code-runtime/code-runtime-worker-thread",
     "@deepseek-ai/dsh-mcp-client": "link:../deepseek-harness/packages/mcp/mcp-client",
     "@deepseek-ai/dsh-web-fetch-http": "link:../deepseek-harness/packages/web/web-fetch-http",
-    "@deepseek-ai/dsh-agent-presets": "link:../deepseek-harness/packages/preset/agent-presets"
+    "@deepseek-ai/dsh-agent-presets": "link:../deepseek-harness/packages/preset/agent-presets",
+    "@deepseek-ai/dsh-subagent-claude-code": "link:../deepseek-harness/packages/subagent/subagent-claude-code",
+    "@deepseek-ai/dsh-subagent-codex": "link:../deepseek-harness/packages/subagent/subagent-codex",
+    "@deepseek-ai/dsh-hooks-codex": "link:../deepseek-harness/packages/hooks/hooks-codex",
+    "@deepseek-ai/dsh-session-log-export": "link:../deepseek-harness/packages/session-query/session-log-export",
+    "@deepseek-ai/dsh-skill-badge": "link:../deepseek-harness/packages/skill/skill-badge"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
