@@ -232,6 +232,9 @@ importers:
       "@deepseek-ai/dsh-web":
         specifier: link:../deepseek-harness/packages/web/web
         version: link:../deepseek-harness/packages/web/web
+      "@deepseek-ai/dsh-web-fetch-http":
+        specifier: link:../deepseek-harness/packages/web/web-fetch-http
+        version: link:../deepseek-harness/packages/web/web-fetch-http
       "@deepseek-ai/dsh-web-search-deepseek":
         specifier: link:../deepseek-harness/packages/web/web-search-deepseek
         version: link:../deepseek-harness/packages/web/web-search-deepseek

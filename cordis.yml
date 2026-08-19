@@ -147,6 +147,10 @@
     workspaceContext:
       maxBytes: 131072
     dshHome: !!js dshHomePath()
+    # 'both' keeps every native tool visible AND registers run_code, the
+    # code-mode transport backed by dsh-code-runtime-worker-thread.
+    tools:
+      mode: both
     skills:
       enabled: true
       filesystem:
@@ -423,10 +427,16 @@
   config:
     apiKeyEnv: DEEPSEEK_API_KEY
 
+# Anonymous public HTTP(S) fetch provider, registered into ctx.web's fetch
+# registry. Without it there is no fetch backend, which is why the tool below
+# shipped with fetch disabled.
+- id: web-fetch-http
+  name: "@deepseek-ai/dsh-web-fetch-http"
+
 - id: tool-web
   name: "@deepseek-ai/dsh-tool-web"
   config:
-    fetch: false
+    fetch: true
     searchTimeoutMs: 60000
 
 # Workflow tool: model-facing workflow orchestration (uses workflowEngine).

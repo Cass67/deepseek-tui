@@ -95,7 +95,8 @@
     "@deepseek-ai/dsh-hooks-claude-code": "link:../deepseek-harness/packages/hooks/hooks-claude-code",
     "@deepseek-ai/dsh-code-runtime": "link:../deepseek-harness/packages/code-runtime/code-runtime",
     "@deepseek-ai/dsh-code-runtime-worker-thread": "link:../deepseek-harness/packages/code-runtime/code-runtime-worker-thread",
-    "@deepseek-ai/dsh-mcp-client": "link:../deepseek-harness/packages/mcp/mcp-client"
+    "@deepseek-ai/dsh-mcp-client": "link:../deepseek-harness/packages/mcp/mcp-client",
+    "@deepseek-ai/dsh-web-fetch-http": "link:../deepseek-harness/packages/web/web-fetch-http"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
