@@ -1,33 +1,55 @@
 # deepseek-tui
 
-Interactive OpenTUI client for DeepSeek Harness. It launches the sibling Harness runtime over stdio JSON-RPC and uses Qwen Token Plan by default.
+A terminal client for the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness).
+
+The TUI is a thin client: it spawns the harness as a subprocess and speaks
+stdio JSON-RPC to it. The harness side is composed by this repo's
+`cordis.yml`, layered over the plugins `@deepseek-ai/dsh-agent-spine-demo`
+mounts underneath. Every durable session event streams back and drives the UI,
+so panels are projections of the event log rather than local state.
+
+Built with Bun, React and [OpenTUI](https://github.com/sst/opentui).
 
 ## Requirements
 
-Every dependency except `react` and `@opentui/*` is a `link:` into a sibling
-`../deepseek-harness` checkout, so the code you run is whatever sits in that
-working tree — there is no version to pin.
+- **Bun**, **Node.js** and **pnpm**
+- A checkout of the harness at `../deepseek-harness`
+- At least one model route (a local OpenAI-compatible server, or any of the
+  38 catalog providers)
 
-That checkout must contain the L2 runtime methods (`settings/get`,
-`settings/set`, `skills/list`, `agent-presets/list`). They are **not** in
-`0.1.0-rc.7`; use the `sdk-l2-protocol` branch of
-[Cass67/deepseek-harness](https://github.com/Cass67/deepseek-harness), or any
-branch containing `9501b8d857`. Without them the app still boots, but the
-settings overlay, skill picker, preset picker and last-model-restore fail at
-runtime.
-
-`node scripts/preflight.mjs` checks this and names what is missing.
+> **The harness checkout must contain the L2 runtime methods**
+> (`settings/get`, `settings/set`, `skills/list`, `agent-presets/list`).
+> They are **not** in `0.1.0-rc.7`. Use the `sdk-l2-protocol` branch of
+> [Cass67/deepseek-harness](https://github.com/Cass67/deepseek-harness), or any
+> branch containing `9501b8d857`.
+>
+> Without them the app still boots and then fails the moment anything reads
+> settings — the settings overlay, both pickers and last-model-restore. Every
+> dependency bar `react` and `@opentui/*` is a `link:` into that sibling
+> working tree, so the code you run is whatever is checked out there and there
+> is no version to pin. Run `node scripts/preflight.mjs` to check.
 
 ## Run
 
-Requirements: Bun, Node.js, pnpm, `../deepseek-harness`, and a Qwen Token Plan credential.
-
 ```bash
 pnpm install
+node scripts/preflight.mjs   # confirms the linked harness is new enough
 ./bin/deepseek-tui
 ```
 
-The launcher preserves its caller's working directory as the agent workspace. Authentication uses `QWEN_TOKEN_PLAN_API_KEY` when set, otherwise the existing Pi `qwen-token-plan` credential without printing it. The Qwen route is pinned to `https://token-plan.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1`.
+The launcher preserves its caller's working directory as the agent workspace.
+
+### Environment
+
+| Variable                     | Effect                                                                |
+| ---------------------------- | --------------------------------------------------------------------- |
+| `DSH_PROVIDER` / `DSH_MODEL` | Pin the route. Overrides the remembered one.                          |
+| `DSH_MAX_TOKENS`             | Output cap per turn. Defaults to `16384`; some routes allow far more. |
+| `DSH_CWD`                    | Agent workspace. Defaults to the launcher's cwd.                      |
+| `CONTEXT7_API_KEY`           | Raises context7 rate limits. Optional.                                |
+
+Without `DSH_PROVIDER`/`DSH_MODEL`, a new session resumes the **last route you
+selected**, persisted in the `agent-default-model` settings namespace.
 
 ## Providers
 
@@ -116,44 +138,52 @@ Harness approval and question requests preempt ordinary overlays. Approval defau
 
 `/attach` accepts only regular files contained in the caller workspace. Dragging one PNG, JPEG, WebP, or GIF into the composer recognizes the terminal-pasted absolute path and explicitly admits that external image. Both paths reject symlinks, query deployment image limits, then read at most `maxImageBytes + 1` through one file handle. Only a basename and durable attachment reference enter UI/model history; local paths and base64 never do. The selected catalog model must advertise image input. Attachment admission and prompt admission are serialized. Enter during an active turn snapshots queued images into that follow-up, clears them from the composer, and dispatches queued prompts FIFO after each turn becomes idle. Composer input remains enabled during model work without resetting the active stream. The runtime verifies declared media type and image bytes through its durable attachment service.
 
-## Harness capabilities
+## Capabilities
 
-The composition is `cordis.yml` layered over the plugins
-`@deepseek-ai/dsh-agent-spine-demo` mounts. Together they expose 43 model-facing
-tools — 21 of the 24 packages in the harness's generated `docs/tool-catalog.md`:
+`cordis.yml` plus the spine expose **47 model-facing tools** — 21 of the 24 tool
+packages in the harness's generated `docs/tool-catalog.md`, plus MCP.
 
-| Capability | Tools                                                                                                   |
-| ---------- | ------------------------------------------------------------------------------------------------------- |
-| Files      | `read`, `write`, `edit`, `read_image`, `str_replace_editor`, `glob`, `grep`                             |
-| Shell      | `bash` (sandbox-confined, background runs become jobs)                                                  |
-| Terminal   | `terminal_open`, `terminal_read`, `terminal_send`, `terminal_close`, `terminal_list`, `terminal_signal` |
-| Jobs       | `job_list`, `job_output`, `job_kill`                                                                    |
-| Subagents  | `subagent`, `subagent_fork`, `send_message`, `interrupt_agent`, `list_agents`, `report`                 |
-| Planning   | `exit_plan_mode`, `create_goal`, `get_goal`, `update_goal`, `todo_write`                                |
-| Workflow   | `workflow`, `ralph`                                                                                     |
-| Web        | `web_search`, `web_fetch`                                                                               |
-| Sessions   | `session_search`, `session_trace`, `session_event_read`, `session_event_search`, `session_event_trace`  |
-| Schedule   | `schedule_create`, `schedule_list`, `schedule_delete`                                                   |
-| Code       | `lsp`, `run_code`                                                                                       |
-| Skills     | `skill`                                                                                                 |
-| Ask        | `ask_user_question`                                                                                     |
-
-Deliberately absent: `pwsh` (Windows-only), `cordis_*` (ships in no tree by
-design), and `dsh-tool-bash-persistent` (superseded by the terminal tools).
+| Area       | Tools                                                                                                           |
+| ---------- | --------------------------------------------------------------------------------------------------------------- |
+| Files      | `read`, `write`, `edit`, `read_image`, `str_replace_editor`, `glob`, `grep`                                     |
+| Shell      | `bash` (sandbox-confined; background runs become jobs)                                                          |
+| Terminal   | `terminal_open`, `terminal_read`, `terminal_send`, `terminal_close`, `terminal_list`, `terminal_signal`         |
+| Jobs       | `job_list`, `job_output`, `job_kill`                                                                            |
+| Delegation | `subagent`, `subagent_fork`, `claude_code`, `codex`, `send_message`, `interrupt_agent`, `list_agents`, `report` |
+| Planning   | `exit_plan_mode`, `create_goal`, `get_goal`, `update_goal`, `todo_write`                                        |
+| Workflow   | `workflow`, `ralph`                                                                                             |
+| Web        | `web_search`, `web_fetch`                                                                                       |
+| Sessions   | `session_search`, `session_trace`, `session_event_read`, `session_event_search`, `session_event_trace`          |
+| Schedule   | `schedule_create`, `schedule_list`, `schedule_delete`                                                           |
+| Code       | `lsp`, `run_code`                                                                                               |
+| Skills     | `skill`                                                                                                         |
+| Ask        | `ask_user_question`                                                                                             |
+| MCP        | `mcp__context7__resolve-library-id`, `mcp__context7__query-docs`                                                |
 
 **Sandbox.** `dsh-fs-sandbox` and `dsh-bash-sandbox` replace the plain local
-backends, so writes and commands are confined by `ctx.sandboxPolicy`. The
-default mode is `workspace-write`; `/permission` switches presets.
+backends, so writes and commands are confined by `ctx.sandboxPolicy` — seatbelt
+on macOS, bwrap/landlock on Linux. Default mode is `workspace-write`;
+`/permission` switches presets. A write outside the workspace comes back
+`[sandbox: file access denied under workspace-write mode]`.
 
-**MCP.** Mounted once per server. **context7** ships wired up over stdio
-(`npx -y @upstash/context7-mcp`), contributing `mcp__context7__resolve-library-id`
-and `mcp__context7__query-docs` for up-to-date library documentation. Set
-`CONTEXT7_API_KEY` to raise rate limits. Copy the `mcp-context7` row in
-`cordis.yml` to add more servers. MCP tools register asynchronously after the
-server connects, so they appear a moment after boot.
+**Delegation.** `subagent`/`subagent_fork` run in-process. `claude_code` and
+`codex` shell out to the real product CLIs in the same workspace, so a child
+can be a genuinely different agent. Both are one-shot.
 
-**Agent presets** (`Ctrl+A`). Named by the kind of work, not the model — each
-preset's composition picks its own route, so retuning is a two-line edit:
+**MCP.** One row per server in `cordis.yml`; context7 ships wired up. MCP tools
+register asynchronously after the server connects, so they appear shortly after
+boot rather than at startup.
+
+**Skills.** Read from `.dsh/skills/<name>/SKILL.md`, with `name` and
+`description` frontmatter required. This repo ships `mount-harness-plugin`.
+
+**Hooks.** Claude-Code format from `<workspace>/.claude/settings.json`, Codex
+format from `$CODEX_HOME/config.toml`. A missing file registers no handlers.
+
+## Agent presets
+
+`Ctrl+A`. Named by the kind of work, not the model — each preset's composition
+picks its own route, so retuning is a two-line edit.
 
 | Preset     | For                                                                      |
 | ---------- | ------------------------------------------------------------------------ |
@@ -162,13 +192,56 @@ preset's composition picks its own route, so retuning is a two-line edit:
 | `verify`   | Checks work already done. Routed to a different model family on purpose. |
 
 They live in `.dsh/presets/<id>/`: `agent.cordis.yml` is the per-session
-composition, `preset.yml` the name and description the picker shows, and the
-directory name is the id. Selecting one writes the `agent-presets` settings
-namespace — there is no `/preset` command.
+composition, `preset.yml` the display name and description, and the directory
+name is the id. Selecting one writes the `agent-presets` settings namespace —
+there is no `/preset` command.
 
-**Skills.** Project skills are read from `.dsh/skills/<name>/SKILL.md`
-(`name` + `description` frontmatter required). This repo ships
-`mount-harness-plugin`.
+## Development
 
-**Hooks.** Claude-Code-format hooks are read from
-`<workspace>/.claude/settings.json`. A missing file registers no handlers.
+```bash
+bunx tsc --noEmit     # types
+bun test              # unit tests
+bun run build         # bundle to dist/
+bunx eslint src
+```
+
+Because most behaviour lives in a subprocess, several checks drive the real
+harness instead of mocking it:
+
+| Script                                | Checks                                                                  |
+| ------------------------------------- | ----------------------------------------------------------------------- |
+| `scripts/preflight.mjs`               | The linked harness has the L2 methods this client calls                 |
+| `scripts/boot-test.mjs`               | The composition loads and reports its commands                          |
+| `scripts/l2-probe.mjs`                | Which L2 methods the harness answers                                    |
+| `scripts/tool-audit.mjs`              | Which tools actually register, by reading the schemas sent to the model |
+| `scripts/tool-exec-check.mjs`         | Tools genuinely execute, including a sandbox refusal that must fail     |
+| `scripts/settings-roundtrip.mjs`      | `settings/get` → `set` → read-back → restore                            |
+| `scripts/route-persistence-check.mjs` | The remembered route survives a process restart                         |
+
+`tool-audit` and `tool-exec-check` stand up a stub OpenAI-compatible endpoint,
+so they need no live model. The endpoint must stream: the harness always sends
+`stream: true`, and a plain JSON body is silently discarded and retried.
+
+Mounting a plugin does not mean its tools register — several need a provider or
+a config flag first. Measure with `tool-audit` rather than reading `cordis.yml`.
+
+## Not mounted, and why
+
+Everything else the harness ships is deliberately absent:
+
+- `dsh-subagent-dsh-sdk`, `dsh-subagent-acp` — need a second runtime or an ACP
+  agent to talk to.
+- `dsh-web-search-exa`, `dsh-web-search-perplexity` — need API keys.
+- `dsh-tool-pwsh`, `dsh-pwsh-*`, `dsh-sandbox-windows-acl` — Windows only.
+- `dsh-tool-cordis` — ships in no tree by design; dynamic code reaches the real
+  runtime.
+- `dsh-tool-bash-persistent` — superseded by the terminal tools, and would
+  collide with `bash`.
+- `dsh-fs-local`, `dsh-bash-local` — replaced by their sandbox equivalents.
+- `dsh-hook-protocol`, `dsh-jobs`, `dsh-shell`, `dsh-code-runtime`,
+  `dsh-sandbox` — types-only or abstract bases; mounting them fails to load.
+
+## License
+
+[Apache-2.0](LICENSE). The DeepSeek Harness packages it links against are MIT
+and retain their own terms — see [NOTICE](NOTICE).

@@ -1,0 +1,9 @@
+deepseek-tui
+Copyright 2026 Cass
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+It depends on, but does not redistribute, the DeepSeek Harness
+(https://github.com/deepseek-ai/deepseek-harness), which is licensed under the
+MIT License, Copyright (c) 2026 DeepSeek. Those packages are resolved from a
+local checkout at build time and retain their own license terms.

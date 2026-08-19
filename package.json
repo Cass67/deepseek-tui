@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Interactive terminal chat UI for DeepSeek Harness",
+  "description": "Terminal client for the DeepSeek Harness",
   "bin": {
     "deepseek-tui": "bin/deepseek-tui"
   },
@@ -113,5 +113,10 @@
     "globals": "^17.11.0",
     "typescript": "^5.8.0",
     "typescript-eslint": "^8.67.0"
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Cass67/deepseek-tui.git"
   }
 }
