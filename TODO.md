@@ -69,8 +69,14 @@ All mounted and booting. `node scripts/boot-test.mjs` is the check.
       Remaining 3 are deliberate: `pwsh` (Windows), `cordis_*` (in no shipped
       tree), `tool-bash-persistent` (superseded by the terminal tools).
 - [x] Update README command/key tables and `.env.example`.
-- [ ] Full end-to-end against a live model: multi-turn with tools, subagent,
-      plan→execute, `/compact`, `/sessions` resume, clean shutdown.
+- [x] Live end-to-end against `local-llm-router/router`. The model drove
+      terminal_open → terminal_send → terminal_read → terminal_close and
+      reported real output (`Darwin`, workspace path); ran `run_code` (42);
+      `session_search` (63 sessions); and hit the sandbox refusal on a `$HOME`
+      write, which offered an escalation. Trajectory, deliverables and the
+      skill picker were rendered and checked on screen.
+- [ ] Still unexercised live: subagents, plan→execute, `/compact`,
+      `/sessions` resume.
 
 ## Verification status
 

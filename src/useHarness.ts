@@ -437,6 +437,7 @@ export function processEvent(
     workflowRuns: WorkflowRun[];
     feedback: FeedbackEntry[];
     deliverables: DeliverableEntry[];
+    pendingDeliverables: Map<string, DeliverableEntry>;
     toolCallNames: Map<string, string>;
   },
 ): {
@@ -564,12 +565,14 @@ export function processEvent(
         });
       }
       // Track mutating tool calls (write/edit/bash) for the deliverables panel.
+      // Held until the result arrives: a call is an INTENT, and a sandbox
+      // refusal or any other failure must not be reported as work done.
       const deliverable = deliverableForToolCall(
         toolName,
         data.arguments as string,
       );
-      if (deliverable) {
-        ctx.deliverables.push({
+      if (deliverable && callId) {
+        ctx.pendingDeliverables.set(callId, {
           id: nextId(),
           timestamp: Date.now(),
           toolName,
@@ -599,6 +602,15 @@ export function processEvent(
       if (callId && (toolName === "subagent" || toolName === "subagent_fork")) {
         const subagent = ctx.subagents.find((s) => s.id === callId);
         if (subagent) subagent.status = "done";
+      }
+      // Commit the deliverable only if the mutation actually succeeded.
+      if (callId) {
+        const pendingDeliverable = ctx.pendingDeliverables.get(callId);
+        if (pendingDeliverable) {
+          ctx.pendingDeliverables.delete(callId);
+          if (result?.isError !== true)
+            ctx.deliverables.push(pendingDeliverable);
+        }
       }
       // Refresh the jobs panel from a job_list result (mutate in place so the
       // caller's reference stays valid).
@@ -817,6 +829,7 @@ export function replayHistory(events: readonly SessionHistoryEvent[]): {
   const workflowRuns: WorkflowRun[] = [];
   const feedback: FeedbackEntry[] = [];
   const deliverables: DeliverableEntry[] = [];
+  const pendingDeliverables = new Map<string, DeliverableEntry>();
   const toolCallNames = new Map<string, string>();
   const ctx = {
     streamingText: "",
@@ -829,6 +842,7 @@ export function replayHistory(events: readonly SessionHistoryEvent[]): {
     workflowRuns,
     feedback,
     deliverables,
+    pendingDeliverables,
     toolCallNames,
   };
   for (const event of events) {
@@ -980,6 +994,7 @@ export function useHarness(options: UseHarnessOptions = {}): UseHarnessReturn {
   const trajectoryRef = useRef<TrajectoryEntry[]>([]);
   const trajectoryIdRef = useRef(0);
   const deliverablesRef = useRef<DeliverableEntry[]>([]);
+  const pendingDeliverablesRef = useRef(new Map<string, DeliverableEntry>());
   const toolCallNamesRef = useRef(new Map<string, string>());
   const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sessionIdRef = useRef(initialSessionId);
@@ -1123,6 +1138,7 @@ export function useHarness(options: UseHarnessOptions = {}): UseHarnessReturn {
                 workflowRuns: workflowRunsRef.current,
                 feedback: feedbackRef.current,
                 deliverables: deliverablesRef.current,
+                pendingDeliverables: pendingDeliverablesRef.current,
                 toolCallNames: toolCallNamesRef.current,
               });
               streamingRef.current = result.streamingText;

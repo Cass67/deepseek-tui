@@ -29,6 +29,7 @@ function makeCtx() {
   const workflowRuns: WorkflowRun[] = [];
   const feedback: FeedbackEntry[] = [];
   const deliverables: DeliverableEntry[] = [];
+  const pendingDeliverables = new Map<string, DeliverableEntry>();
   const ctx = {
     streamingText: "",
     assistantId: null as string | null,
@@ -40,6 +41,7 @@ function makeCtx() {
     workflowRuns,
     feedback,
     deliverables,
+    pendingDeliverables,
     toolCallNames,
   };
   const apply = (event: Record<string, unknown>): void => {
@@ -54,6 +56,7 @@ function makeCtx() {
     subagents,
     jobs,
     toolCallNames,
+    deliverables,
     apply,
     streamRef: () => ({
       streamingText: ctx.streamingText,
@@ -132,6 +135,7 @@ test("keeps reasoning out of answer markdown and exposes long-running activity",
     workflowRuns: [],
     feedback: [],
     deliverables: [],
+    pendingDeliverables: new Map<string, DeliverableEntry>(),
     toolCallNames: new Map<string, string>(),
   });
 
@@ -370,6 +374,7 @@ test("tracks workflow runs and member outcomes", () => {
     workflowRuns: shared,
     feedback: [],
     deliverables: [],
+    pendingDeliverables: new Map<string, DeliverableEntry>(),
     toolCallNames: new Map<string, string>(),
   };
   const messages: ChatMessage[] = [];
@@ -429,6 +434,7 @@ test("tracks feedback entries", () => {
     workflowRuns: [],
     feedback,
     deliverables: [],
+    pendingDeliverables: new Map<string, DeliverableEntry>(),
     toolCallNames: new Map<string, string>(),
   };
   processEvent(
@@ -540,4 +546,50 @@ test("every known session event type is surfaced or explicitly ignored", () => {
     [],
     `UNSURFACED_EVENT_TYPES lists unknown types: ${stale.join(", ")}`,
   );
+});
+
+// Regression: a sandbox-denied write was showing up in the deliverables panel
+// as "wrote /Users/cass/escape-test.txt" even though no file was created. A
+// tool CALL is only an intent; the result decides whether it happened.
+test("only records deliverables for calls that succeeded", () => {
+  const { messages, apply, deliverables } = makeCtx();
+
+  const call = (callId: string, path: string) =>
+    apply({
+      type: "tool/call",
+      data: {
+        name: "write",
+        callId,
+        arguments: JSON.stringify({ file_path: path, content: "x" }),
+      },
+    });
+  const result = (callId: string, isError: boolean) =>
+    apply({
+      type: "tool/result",
+      data: {
+        message: {
+          source: { callId },
+          content: [
+            {
+              type: "tool-result",
+              content: isError ? "denied" : "ok",
+              isError,
+            },
+          ],
+        },
+      },
+    });
+
+  call("ok-1", "/workspace/good.txt");
+  result("ok-1", false);
+  call("bad-1", "/outside/denied.txt");
+  result("bad-1", true);
+
+  const targets = deliverables.map((d) => d.target);
+  assert.deepEqual(
+    targets,
+    ["/workspace/good.txt"],
+    `got: ${targets.join(", ")}`,
+  );
+  assert.equal(messages.length > 0, true);
 });
