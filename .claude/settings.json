@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"[hook] pre-bash $(date +%s)\" >> \"${CLAUDE_PROJECT_DIR:-.}/.claude/hook-log.txt\""
+          }
+        ]
+      }
+    ]
+  }
+}

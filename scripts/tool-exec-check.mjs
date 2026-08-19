@@ -22,14 +22,29 @@ const probeConfig = resolve(APP_ROOT, "_tool-exec.cordis.yml");
 const ALL = {
   terminal_open: { type: "shell", name: "exec-check" },
   session_search: { query: "harness" },
+  bash: {
+    command: "echo hook-trigger",
+    description: "trigger the PreToolUse hook",
+  },
   lsp: { operation: "hover", file_path: "src/App.tsx", line: 1, character: 1 },
   web_fetch: { url: "https://example.com" },
   run_code: { description: "trivial arithmetic", code: "1 + 1" },
   schedule_list: {},
+  // Sandbox confinement: a write outside the workspace must be denied.
+  // /tmp is a PERMITTED temp dir under workspace-write, so the escape test
+  // has to target somewhere genuinely outside: the home directory. This one is
+  // expected to FAIL -- a success would mean the sandbox is not confining.
+  write: {
+    file_path: `${process.env.HOME}/dsh-sandbox-escape-check.txt`,
+    content: "should be denied",
+  },
 };
 const names = process.argv.slice(2).length
   ? process.argv.slice(2)
   : Object.keys(ALL);
+
+/** Tools whose call must be REFUSED for the check to pass. */
+const MUST_FAIL = new Set(["write"]);
 
 let pending = null;
 let servedCall = false;
@@ -182,8 +197,12 @@ function runCase(name) {
 let failures = 0;
 for (const name of names) {
   const outcome = await runCase(name);
-  if (!outcome.startsWith("ok")) failures++;
-  console.log(`${name.padEnd(16)} ${outcome}`);
+  const succeeded = outcome.startsWith("ok");
+  const pass = MUST_FAIL.has(name) ? !succeeded : succeeded;
+  if (!pass) failures++;
+  const verdict = pass ? "PASS" : "FAIL";
+  const note = MUST_FAIL.has(name) ? " (expected refusal)" : "";
+  console.log(`${verdict} ${name.padEnd(15)}${note} ${outcome.slice(0, 70)}`);
 }
 unlinkSync(probeConfig);
 server.close();
