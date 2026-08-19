@@ -2,33 +2,9 @@
 
 A terminal client for the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness).
 
-> ### This needs a specific harness build
->
-> The TUI calls L2 runtime methods — `settings/get`, `settings/set`,
-> `skills/list`, `agent-presets/list` — that are **not in upstream
-> `deepseek-ai/deepseek-harness`** and not in release `0.1.0-rc.7`. They live on
-> the **`v0.1.0-l2`** tag of
-> **[Cass67/deepseek-harness](https://github.com/Cass67/deepseek-harness)**.
->
-> Against upstream, the app **boots normally and then fails** the moment
-> anything reads settings: the settings overlay, the skill and agent-preset
-> pickers, and last-model-restore. There is no version to pin — every
-> dependency bar `react` and `@opentui/*` is a `link:` into a sibling checkout,
-> so you get whatever is in that working tree.
->
-> `scripts/install.mjs` sets this up for you.
+## Quick start
 
-The TUI is a thin client: it spawns the harness as a subprocess and speaks
-stdio JSON-RPC to it. The harness side is composed by this repo's `cordis.yml`,
-layered over the plugins `@deepseek-ai/dsh-agent-spine-demo` mounts underneath.
-Every durable session event streams back and drives the UI, so the panels are
-projections of the event log rather than local state.
-
-Built with Bun, React and [OpenTUI](https://github.com/sst/opentui).
-
-## Install
-
-Requires **Bun**, **Node.js**, **pnpm** and **git**.
+Needs **Bun**, **Node.js**, **pnpm** and **git**.
 
 ```bash
 git clone https://github.com/Cass67/deepseek-tui.git
@@ -37,24 +13,17 @@ node scripts/install.mjs
 ./bin/deepseek-tui
 ```
 
-The installer clones the harness fork to `../deepseek-harness`, installs it,
-**builds it**, installs this app, and verifies the required L2 methods respond.
-It is safe to re-run, and never rewrites an existing harness checkout — if one
-is present but on the wrong revision it tells you the command to fix it.
+The installer fetches and builds the harness next door, installs this app, and
+checks it works. Takes a few minutes the first time, mostly building. Re-run it
+any time.
 
-The build step is not optional and is the slow part: the harness gitignores
-`lib/`, and every `link:` dependency resolves through `exports` to `./lib/`.
-A cloned-but-unbuilt harness resolves nothing.
+It uses [Cass67/deepseek-harness](https://github.com/Cass67/deepseek-harness)
+rather than upstream, because the TUI needs settings and skills methods that
+upstream does not have yet.
 
-```bash
-node scripts/install.mjs --check   # report only, change nothing
-node scripts/preflight.mjs         # do the L2 methods actually respond?
-```
-
-| Variable                               | Effect                                                      |
-| -------------------------------------- | ----------------------------------------------------------- |
-| `DSH_HARNESS_PATH`                     | Where the harness lives. Defaults to `../deepseek-harness`. |
-| `DSH_HARNESS_REPO` / `DSH_HARNESS_REF` | Clone source. Defaults to the fork and the `v0.1.0-l2` tag. |
+The TUI itself is a thin client: it runs the harness as a subprocess over stdio
+JSON-RPC and renders the session event stream. Built with Bun, React and
+[OpenTUI](https://github.com/sst/opentui).
 
 ## Run
 
@@ -235,6 +204,20 @@ They live in `.dsh/presets/<id>/`: `agent.cordis.yml` is the per-session
 composition, `preset.yml` the display name and description, and the directory
 name is the id. Selecting one writes the `agent-presets` settings namespace —
 there is no `/preset` command.
+
+## If something is wrong
+
+```bash
+node scripts/install.mjs --check   # is the harness present, correct and built?
+node scripts/preflight.mjs         # does the harness answer what this app calls
+```
+
+Point them elsewhere with `DSH_HARNESS_PATH` (default `../deepseek-harness`),
+`DSH_HARNESS_REPO` or `DSH_HARNESS_REF` (default the `v0.1.0-l2` tag).
+
+Against upstream harness the app starts and then fails as soon as anything
+reads settings — the settings overlay, both pickers, and last-model-restore.
+That is the symptom of the wrong harness, not a bug here.
 
 ## Development
 
