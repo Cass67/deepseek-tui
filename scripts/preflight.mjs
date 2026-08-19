@@ -68,7 +68,7 @@ for (const [method, breaks] of missing)
   console.error(`  ${method.padEnd(20)} breaks: ${breaks}`);
 console.error(
   "\nThese are not in harness 0.1.0-rc.7. Check out a branch containing" +
-    "\n9501b8d857 (sdk-l2-protocol on github.com/Cass67/deepseek-harness)" +
+    "\n9501b8d857 (main on github.com/Cass67/deepseek-harness)" +
     "\nin ../deepseek-harness, then re-run.",
 );
 process.exit(1);

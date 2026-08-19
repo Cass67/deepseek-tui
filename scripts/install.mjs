@@ -21,7 +21,7 @@ const HARNESS =
 const REPO =
   process.env.DSH_HARNESS_REPO ??
   "https://github.com/Cass67/deepseek-harness.git";
-const BRANCH = process.env.DSH_HARNESS_BRANCH ?? "sdk-l2-protocol";
+const BRANCH = process.env.DSH_HARNESS_BRANCH ?? "main";
 /** The commit that adds the L2 runtime methods this client calls. */
 const REQUIRED_COMMIT = "9501b8d857";
 const CHECK_ONLY = process.argv.includes("--check");
